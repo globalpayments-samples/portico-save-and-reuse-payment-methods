@@ -1,0 +1,113 @@
+<?php
+
+declare(strict_types=1);
+
+/**
+ * Mock responses for testing without SDK
+ */
+class MockResponses
+{
+    /**
+     * Generate mock vault token response
+     */
+    public static function getVaultToken(array $cardData): array
+    {
+        return [
+            'id' => 'vault_' . uniqid() . '_' . bin2hex(random_bytes(8)),
+            'brand' => $cardData['brand'],
+            'last4' => $cardData['last4'],
+            'exp_month' => $cardData['exp_month'],
+            'exp_year' => $cardData['exp_year'],
+            'created_at' => date('c'),
+            'type' => 'card'
+        ];
+    }
+
+    /**
+     * Generate mock payment response
+     */
+    public static function getPaymentResponse(float $amount, string $paymentMethodId): array
+    {
+        return [
+            'transaction_id' => 'txn_' . uniqid(),
+            'amount' => $amount,
+            'currency' => 'USD',
+            'status' => 'approved',
+            'response_code' => '00',
+            'response_message' => 'Approved',
+            'timestamp' => date('c'),
+            'payment_method_id' => $paymentMethodId,
+            'gateway_response' => [
+                'auth_code' => strtoupper(bin2hex(random_bytes(3))),
+                'reference_number' => 'ref_' . uniqid()
+            ]
+        ];
+    }
+
+    /**
+     * Generate mock authorization response
+     */
+    public static function getAuthorizationResponse(float $amount, string $paymentMethodId): array
+    {
+        return [
+            'authorization_id' => 'auth_' . uniqid(),
+            'transaction_id' => 'txn_' . uniqid(),
+            'amount' => $amount,
+            'currency' => 'USD',
+            'status' => 'authorized',
+            'response_code' => '00',
+            'response_message' => 'Authorized',
+            'timestamp' => date('c'),
+            'expires_at' => date('c', strtotime('+7 days')),
+            'payment_method_id' => $paymentMethodId,
+            'gateway_response' => [
+                'auth_code' => strtoupper(bin2hex(random_bytes(3))),
+                'reference_number' => 'ref_' . uniqid()
+            ]
+        ];
+    }
+
+    /**
+     * Generate decline responses for testing
+     */
+    public static function getDeclineResponse(string $reason): array
+    {
+        $responses = [
+            'insufficient_funds' => [
+                'response_code' => '51',
+                'response_message' => 'Insufficient funds',
+                'error_code' => 'CARD_DECLINED'
+            ],
+            'expired_card' => [
+                'response_code' => '54',
+                'response_message' => 'Expired card',
+                'error_code' => 'EXPIRED_CARD'
+            ],
+            'invalid_card' => [
+                'response_code' => '14',
+                'response_message' => 'Invalid card number',
+                'error_code' => 'INVALID_CARD'
+            ]
+        ];
+
+        return $responses[$reason] ?? [
+            'response_code' => '05',
+            'response_message' => 'Do not honor',
+            'error_code' => 'GENERIC_DECLINE'
+        ];
+    }
+
+    /**
+     * Determine response type based on card number (for testing)
+     */
+    public static function getResponseByCardNumber(string $last4): string
+    {
+        $testCards = [
+            '0002' => 'decline_insufficient_funds',
+            '0004' => 'decline_expired_card',
+            '0005' => 'decline_invalid_card'
+        ];
+
+        return $testCards[$last4] ?? 'success';
+    }
+}
