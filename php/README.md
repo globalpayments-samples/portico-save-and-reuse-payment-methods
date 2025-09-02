@@ -1,26 +1,35 @@
-# PHP Card Payment Example
+# Vault One-Click Payment API
 
-This example demonstrates card payment processing using PHP and the Global Payments SDK.
+A comprehensive PHP API system for vault-based payment processing using the Global Payments SDK. This application provides secure payment method storage and processing with both immediate charges and scheduled payment authorizations.
 
 ## Requirements
 
 - PHP 7.4 or later
 - Composer
-- Global Payments account and API credentials
+- Global Payments account and API credentials (optional - includes mock mode)
 
 ## Project Structure
 
-- `process-payment.php` - Payment processing script
-- `index.php` - Client-side payment form
+- `index.php` - Main API router with CORS handling
+- `config.php` - Configuration endpoint for client-side SDK
+- `health.php` - System health check endpoint
+- `payment-methods.php` - Payment method management (vault tokens)
+- `charge.php` - Immediate payment processing ($25.00)
+- `schedule-payment.php` - Payment authorization scheduling ($50.00)
+- `PaymentUtils.php` - Core payment utilities and SDK integration
+- `JsonStorage.php` - JSON-based data storage for payment methods
+- `MockResponses.php` - Mock payment responses for testing
+- `index.html` - Client-side demo interface
+- `data/` - JSON storage directory for payment methods
 - `composer.json` - Project dependencies
 - `.env.sample` - Template for environment variables
-- `run.sh` - Convenience script to run the application
+- `run.sh` - Development server launcher
 
 ## Setup
 
 1. Clone this repository
-2. Copy `.env.sample` to `.env`
-3. Update `.env` with your Global Payments credentials:
+2. Copy `.env.sample` to `.env` (optional)
+3. Update `.env` with your Global Payments credentials (if using real processing):
    ```
    PUBLIC_API_KEY=pk_test_xxx
    SECRET_API_KEY=sk_test_xxx
@@ -40,49 +49,169 @@ This example demonstrates card payment processing using PHP and the Global Payme
 
 ## Implementation Details
 
-### Application Structure
-The application uses a simple PHP structure:
-- Static HTML form for payment collection
-- Separate PHP script for payment processing
-- Composer for dependency management
+### Application Architecture
+The application uses a modular REST API structure:
+- API router with endpoint-based file organization
+- Utility classes for payment processing and data storage
+- Mock mode fallback for testing without API credentials
+- JSON-based data persistence for development
 
 ### SDK Configuration
-Global Payments SDK configuration using environment variables:
-- Loads credentials from .env file
-- Sets up service URL for API communication
-- Configures developer identification
+Global Payments SDK integration:
+- Environment-based configuration loading
+- Portico gateway configuration for payment processing  
+- Automatic fallback to mock responses when SDK unavailable
+- Vault token management for secure payment method storage
 
-### Payment Processing
-Payment processing flow:
-1. Client submits payment token and billing zip
-2. Server creates CreditCardData with token
-3. Creates Address with postal code
-4. Processes $10 USD charge
-5. Returns success/error response
+### Data Storage
+JSON-based storage system:
+- Payment methods stored with vault tokens
+- File-based persistence in `data/` directory
+- Validation and error handling for data operations
+- Mock data generation for testing scenarios
 
 ### Error Handling
-Implements comprehensive error handling:
-- Catches and processes API exceptions
-- Returns appropriate error messages
-- Handles edge cases gracefully
+Comprehensive error management:
+- Structured JSON error responses with error codes
+- HTTP status code mapping for different error types
+- Logging for debugging and monitoring
+- Graceful degradation to mock mode when needed
 
 ## API Endpoints
 
-### POST /process-payment.php
-Processes a payment using the provided token and billing information.
+### GET /health
+System health check with detailed status information.
 
-Request Parameters:
-- `payment_token` (string, required) - Token from client-side SDK
-- `billing_zip` (string, required) - Billing postal code
+Response:
+```json
+{
+  "success": true,
+  "message": "System is healthy",
+  "data": {
+    "status": "healthy",
+    "timestamp": "2024-01-01T12:00:00Z",
+    "sdk_status": "available",
+    "storage_status": "operational"
+  }
+}
+```
 
-Response (Success):
-```
-Payment successful! Transaction ID: xxx
+### GET /payment-methods
+Retrieve all saved payment methods.
+
+Response:
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "pm_123",
+      "type": "card",
+      "last4": "4242",
+      "brand": "visa",
+      "expiry": "12/25",
+      "isDefault": true,
+      "nickname": "My Visa Card"
+    }
+  ]
+}
 ```
 
-Response (Error):
+### POST /payment-methods
+Create and vault a new payment method.
+
+Request:
+```json
+{
+  "cardNumber": "4111111111111111",
+  "expiryMonth": "12",
+  "expiryYear": "2025",
+  "cvv": "123",
+  "nickname": "My Test Card",
+  "isDefault": false
+}
 ```
-Error: [error message]
+
+Response:
+```json
+{
+  "success": true,
+  "data": {
+    "id": "pm_123",
+    "vaultToken": "vault_abc123",
+    "type": "card",
+    "last4": "1111",
+    "brand": "visa",
+    "expiry": "12/25",
+    "nickname": "My Test Card",
+    "isDefault": false,
+    "mockMode": false
+  }
+}
+```
+
+### POST /charge  
+Process immediate payment charge ($25.00).
+
+Request:
+```json
+{
+  "paymentMethodId": "pm_123"
+}
+```
+
+Response:
+```json
+{
+  "success": true,
+  "data": {
+    "transaction_id": "txn_456",
+    "amount": 25.00,
+    "currency": "USD",
+    "status": "approved",
+    "payment_method": {
+      "id": "pm_123",
+      "type": "card",
+      "brand": "visa",
+      "last4": "1111"
+    },
+    "mockMode": false
+  }
+}
+```
+
+### POST /schedule-payment
+Create payment authorization for later capture ($50.00).
+
+Request:
+```json
+{
+  "paymentMethodId": "pm_123"
+}
+```
+
+Response:
+```json
+{
+  "success": true,
+  "data": {
+    "authorization_id": "auth_789",
+    "amount": 50.00,
+    "currency": "USD",
+    "status": "authorized",
+    "payment_method": {
+      "id": "pm_123",
+      "type": "card", 
+      "brand": "visa",
+      "last4": "1111"
+    },
+    "capture_info": {
+      "can_capture": true,
+      "expires_at": "2024-01-08T12:00:00Z"
+    },
+    "mockMode": false
+  }
+}
 ```
 
 ## Security Considerations
