@@ -37,145 +37,131 @@
         <!-- Tabs -->
         <div class="gp-tabs">
             <div class="gp-tab-list">
-                <button class="gp-tab-button active" data-tab="payment-form">Payment Form</button>
-                <button class="gp-tab-button" data-tab="tokenization">Tokenization</button>
-                <button class="gp-tab-button" data-tab="webhooks">Webhooks</button>
-                <button class="gp-tab-button" data-tab="recurring">Recurring Payments</button>
+                <button class="gp-tab-button active" data-tab="payment-methods">Payment Methods</button>
+                <button class="gp-tab-button" data-tab="add-card">Add Card</button>
+                <button class="gp-tab-button" data-tab="process-payments">Process Payments</button>
             </div>
 
-            <!-- Payment Form Tab -->
-            <div class="gp-tab-content active" id="payment-form">
+            <!-- Payment Methods Tab -->
+            <div class="gp-tab-content active" id="payment-methods">
                 <div class="gp-card">
                     <div class="gp-card-header">
-                        <h2 class="gp-card-title">Credit Card Payment Form</h2>
+                        <h2 class="gp-card-title">Saved Payment Methods</h2>
                         <p class="gp-card-description">
-                            Secure payment processing using Global Payments tokenization with client-side form validation.
+                            View and manage your saved payment methods stored securely using vault tokens.
                         </p>
                     </div>
                     
-                    <form id="payment-form" class="gp-form" action="/process-payment" method="POST">
+                    <div id="payment-methods-list">
+                        <div class="gp-loading">Loading payment methods...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Add Card Tab -->
+            <div class="gp-tab-content" id="add-card">
+                <div class="gp-card">
+                    <div class="gp-card-header">
+                        <h2 class="gp-card-title">Add Payment Method</h2>
+                        <p class="gp-card-description">
+                            Add a new credit card to your vault for secure storage and future payments.
+                        </p>
+                    </div>
+                    
+                    <form id="add-card-form" class="gp-form">
                         <div class="gp-form-group">
-                            <label for="amount" class="gp-label">Amount ($):</label>
-                            <input type="number" id="amount" name="amount" class="gp-input" min="0.01" step="0.01" value="10.00" required>
+                            <label for="card-number" class="gp-label">Card Number:</label>
+                            <input type="text" id="card-number" name="cardNumber" class="gp-input" placeholder="1234 5678 9012 3456" required maxlength="19">
                         </div>
                         
-                        <div class="gp-form-group">
-                            <label for="billing_zip" class="gp-label">Billing Zip Code:</label>
-                            <input type="text" id="billing_zip" name="billing_zip" class="gp-input" placeholder="12345" required>
-                        </div>
-
-                        <div class="gp-form-group">
-                            <label class="gp-label">Credit Card Information:</label>
-                            <div id="credit-card"></div>
-                        </div>
-
-                        <button type="submit" class="gp-button gp-button-primary gp-button-full">
-                            Process Payment
-                        </button>
-                    </form>
-                </div>
-            </div>
-
-            <!-- Tokenization Tab -->
-            <div class="gp-tab-content" id="tokenization">
-                <div class="gp-card">
-                    <div class="gp-card-header">
-                        <h2 class="gp-card-title">Card Tokenization</h2>
-                        <p class="gp-card-description">
-                            Securely tokenize payment methods for future use without storing sensitive card data.
-                        </p>
-                    </div>
-                    
-                    <div class="gp-alert gp-alert-info">
-                        <strong>Info:</strong> Tokens can be stored securely and used for future transactions without handling raw card data.
-                    </div>
-
-                    <form id="tokenization-form" class="gp-form">
-                        <div class="gp-form-group">
-                            <label class="gp-label">Card Information for Tokenization:</label>
-                            <div id="credit-card-token"></div>
-                        </div>
-
-                        <button type="submit" class="gp-button gp-button-primary gp-button-full">
-                            Generate Token
-                        </button>
-                    </form>
-
-                    <div id="token-result" class="gp-hidden">
-                        <h3 class="gp-card-title gp-mt-lg">Generated Token:</h3>
-                        <div class="gp-code-block" id="token-display"></div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Webhooks Tab -->
-            <div class="gp-tab-content" id="webhooks">
-                <div class="gp-card">
-                    <div class="gp-card-header">
-                        <h2 class="gp-card-title">Webhook Integration</h2>
-                        <p class="gp-card-description">
-                            Configure and test webhook endpoints for real-time payment notifications.
-                        </p>
-                    </div>
-                    
-                    <div class="gp-code-block">
-// Example webhook handler
-app.post('/webhook', (req, res) => {
-    const signature = req.headers['x-gp-signature'];
-    const payload = req.body;
-    
-    // Verify webhook signature
-    if (verifySignature(payload, signature)) {
-        handlePaymentEvent(payload);
-        res.status(200).send('OK');
-    } else {
-        res.status(400).send('Invalid signature');
-    }
-});
-                    </div>
-
-                    <div class="gp-alert gp-alert-warning">
-                        <strong>Security:</strong> Always verify webhook signatures to ensure requests are from Global Payments.
-                    </div>
-                </div>
-            </div>
-
-            <!-- Recurring Payments Tab -->
-            <div class="gp-tab-content" id="recurring">
-                <div class="gp-card">
-                    <div class="gp-card-header">
-                        <h2 class="gp-card-title">Recurring Payments</h2>
-                        <p class="gp-card-description">
-                            Set up subscription billing and recurring payment schedules.
-                        </p>
-                    </div>
-                    
-                    <form id="recurring-form" class="gp-form">
                         <div class="gp-form-row">
                             <div class="gp-form-group">
-                                <label for="subscription-amount" class="gp-label">Monthly Amount ($):</label>
-                                <input type="number" id="subscription-amount" name="subscription-amount" class="gp-input" min="1.00" step="0.01" value="29.99" required>
+                                <label for="expiry-month" class="gp-label">Expiry Month:</label>
+                                <select id="expiry-month" name="expiryMonth" class="gp-select" required>
+                                    <option value="">Month</option>
+                                    <option value="01">01</option>
+                                    <option value="02">02</option>
+                                    <option value="03">03</option>
+                                    <option value="04">04</option>
+                                    <option value="05">05</option>
+                                    <option value="06">06</option>
+                                    <option value="07">07</option>
+                                    <option value="08">08</option>
+                                    <option value="09">09</option>
+                                    <option value="10">10</option>
+                                    <option value="11">11</option>
+                                    <option value="12">12</option>
+                                </select>
                             </div>
                             
                             <div class="gp-form-group">
-                                <label for="billing-cycle" class="gp-label">Billing Cycle:</label>
-                                <select id="billing-cycle" name="billing-cycle" class="gp-select" required>
-                                    <option value="monthly">Monthly</option>
-                                    <option value="quarterly">Quarterly</option>
-                                    <option value="annually">Annually</option>
+                                <label for="expiry-year" class="gp-label">Expiry Year:</label>
+                                <select id="expiry-year" name="expiryYear" class="gp-select" required>
+                                    <option value="">Year</option>
                                 </select>
+                            </div>
+                            
+                            <div class="gp-form-group">
+                                <label for="cvv" class="gp-label">CVV:</label>
+                                <input type="text" id="cvv" name="cvv" class="gp-input" placeholder="123" required maxlength="4">
                             </div>
                         </div>
 
                         <div class="gp-form-group">
-                            <label class="gp-label">Payment Method:</label>
-                            <div id="credit-card-recurring"></div>
+                            <label for="nickname" class="gp-label">Nickname (Optional):</label>
+                            <input type="text" id="nickname" name="nickname" class="gp-input" placeholder="My Primary Card">
+                        </div>
+
+                        <div class="gp-form-group">
+                            <label class="gp-checkbox-label">
+                                <input type="checkbox" id="is-default" name="isDefault" class="gp-checkbox">
+                                Set as default payment method
+                            </label>
                         </div>
 
                         <button type="submit" class="gp-button gp-button-primary gp-button-full">
-                            Set Up Subscription
+                            Add Payment Method
                         </button>
                     </form>
+
+                    <div id="add-card-result" class="gp-hidden">
+                        <div class="gp-alert gp-alert-success">
+                            <strong>Success:</strong> Payment method added successfully!
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Process Payments Tab -->
+            <div class="gp-tab-content" id="process-payments">
+                <div class="gp-card">
+                    <div class="gp-card-header">
+                        <h2 class="gp-card-title">Process Payments</h2>
+                        <p class="gp-card-description">
+                            Use your saved payment methods to process immediate charges ($25) or schedule payments ($50).
+                        </p>
+                    </div>
+                    
+                    <div class="gp-form-group">
+                        <label for="payment-method-select" class="gp-label">Select Payment Method:</label>
+                        <select id="payment-method-select" class="gp-select" required>
+                            <option value="">Choose a payment method...</option>
+                        </select>
+                    </div>
+
+                    <div class="gp-form-row">
+                        <button id="charge-button" class="gp-button gp-button-primary" disabled>
+                            Charge $25.00
+                        </button>
+                        
+                        <button id="schedule-button" class="gp-button gp-button-secondary" disabled>
+                            Schedule $50.00
+                        </button>
+                    </div>
+
+                    <div id="payment-result" class="gp-hidden">
+                        <!-- Payment results will be displayed here -->
+                    </div>
                 </div>
             </div>
         </div>
@@ -208,6 +194,270 @@ app.post('/webhook', (req, res) => {
         </div>
     </footer>
 
-    <script src="https://globalpayments-samples.github.io/js/script.js"></script>
+    <script>
+        // Tab functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const tabButtons = document.querySelectorAll('.gp-tab-button');
+            const tabContents = document.querySelectorAll('.gp-tab-content');
+
+            tabButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    // Remove active class from all buttons and contents
+                    tabButtons.forEach(btn => btn.classList.remove('active'));
+                    tabContents.forEach(content => content.classList.remove('active'));
+
+                    // Add active class to clicked button and corresponding content
+                    button.classList.add('active');
+                    const tabId = button.getAttribute('data-tab');
+                    document.getElementById(tabId).classList.add('active');
+                });
+            });
+
+            // Initialize the application
+            initializeApp();
+        });
+
+        // API base URL
+        const API_BASE = window.location.origin;
+
+        // Initialize application
+        async function initializeApp() {
+            await loadPaymentMethods();
+            populateExpiryYears();
+            setupEventHandlers();
+        }
+
+        // Load payment methods from backend
+        async function loadPaymentMethods() {
+            try {
+                const response = await fetch(`${API_BASE}/payment-methods`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayPaymentMethods(data.data);
+                    populatePaymentMethodSelect(data.data);
+                } else {
+                    displayError('payment-methods-list', 'Failed to load payment methods');
+                }
+            } catch (error) {
+                displayError('payment-methods-list', 'Error loading payment methods: ' + error.message);
+            }
+        }
+
+        // Display payment methods in the list
+        function displayPaymentMethods(methods) {
+            const container = document.getElementById('payment-methods-list');
+            
+            if (methods.length === 0) {
+                container.innerHTML = '<p class="gp-text-muted">No payment methods saved yet. Add one using the "Add Card" tab.</p>';
+                return;
+            }
+
+            const methodsHtml = methods.map(method => `
+                <div class="gp-card gp-mb-md">
+                    <div class="gp-card-body">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <h4 class="gp-text-primary">${method.brand.toUpperCase()} ending in ${method.last4}</h4>
+                                <p class="gp-text-muted">Expires: ${method.expiry}</p>
+                                ${method.nickname ? `<p class="gp-text-sm">${method.nickname}</p>` : ''}
+                                ${method.isDefault ? '<span class="gp-badge gp-badge-primary">Default</span>' : ''}
+                            </div>
+                            <div>
+                                <span class="gp-text-success">✓ Saved</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            container.innerHTML = methodsHtml;
+        }
+
+        // Populate payment method dropdown
+        function populatePaymentMethodSelect(methods) {
+            const select = document.getElementById('payment-method-select');
+            const chargeButton = document.getElementById('charge-button');
+            const scheduleButton = document.getElementById('schedule-button');
+            
+            // Clear existing options except the first one
+            select.innerHTML = '<option value="">Choose a payment method...</option>';
+            
+            methods.forEach(method => {
+                const option = document.createElement('option');
+                option.value = method.id;
+                option.textContent = `${method.brand.toUpperCase()} ending in ${method.last4}${method.nickname ? ' (' + method.nickname + ')' : ''}`;
+                select.appendChild(option);
+            });
+
+            // Enable/disable buttons based on selection
+            select.addEventListener('change', () => {
+                const hasSelection = select.value !== '';
+                chargeButton.disabled = !hasSelection;
+                scheduleButton.disabled = !hasSelection;
+            });
+        }
+
+        // Populate expiry years
+        function populateExpiryYears() {
+            const yearSelect = document.getElementById('expiry-year');
+            const currentYear = new Date().getFullYear();
+            
+            for (let i = 0; i < 20; i++) {
+                const year = currentYear + i;
+                const option = document.createElement('option');
+                option.value = year.toString();
+                option.textContent = year.toString();
+                yearSelect.appendChild(option);
+            }
+        }
+
+        // Setup event handlers
+        function setupEventHandlers() {
+            // Add card form
+            document.getElementById('add-card-form').addEventListener('submit', handleAddCard);
+            
+            // Format card number input
+            document.getElementById('card-number').addEventListener('input', formatCardNumber);
+            
+            // CVV input validation
+            document.getElementById('cvv').addEventListener('input', formatCVV);
+            
+            // Process payment buttons
+            document.getElementById('charge-button').addEventListener('click', () => processPayment('charge'));
+            document.getElementById('schedule-button').addEventListener('click', () => processPayment('schedule'));
+        }
+
+        // Handle add card form submission
+        async function handleAddCard(event) {
+            event.preventDefault();
+            
+            const formData = new FormData(event.target);
+            const cardData = {
+                cardNumber: formData.get('cardNumber').replace(/\s/g, ''),
+                expiryMonth: formData.get('expiryMonth'),
+                expiryYear: formData.get('expiryYear'),
+                cvv: formData.get('cvv'),
+                nickname: formData.get('nickname'),
+                isDefault: formData.get('isDefault') === 'on'
+            };
+
+            try {
+                const response = await fetch(`${API_BASE}/payment-methods`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(cardData)
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    document.getElementById('add-card-result').classList.remove('gp-hidden');
+                    document.getElementById('add-card-form').reset();
+                    await loadPaymentMethods(); // Refresh the payment methods list
+                    
+                    // Auto-hide success message after 3 seconds
+                    setTimeout(() => {
+                        document.getElementById('add-card-result').classList.add('gp-hidden');
+                    }, 3000);
+                } else {
+                    displayError('add-card-result', result.message || 'Failed to add payment method');
+                }
+            } catch (error) {
+                displayError('add-card-result', 'Error adding payment method: ' + error.message);
+            }
+        }
+
+        // Process payment (charge or schedule)
+        async function processPayment(type) {
+            const paymentMethodId = document.getElementById('payment-method-select').value;
+            const resultContainer = document.getElementById('payment-result');
+            
+            if (!paymentMethodId) {
+                displayError('payment-result', 'Please select a payment method');
+                return;
+            }
+
+            const endpoint = type === 'charge' ? 'charge' : 'schedule-payment';
+            
+            try {
+                resultContainer.innerHTML = '<div class="gp-loading">Processing payment...</div>';
+                resultContainer.classList.remove('gp-hidden');
+                
+                const response = await fetch(`${API_BASE}/${endpoint}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ paymentMethodId })
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    const data = result.data;
+                    let successHtml = `
+                        <div class="gp-alert gp-alert-success">
+                            <strong>Success!</strong> ${type === 'charge' ? 'Payment charged' : 'Payment scheduled'} successfully.
+                        </div>
+                        <div class="gp-card gp-mt-md">
+                            <div class="gp-card-body">
+                                <h4>Transaction Details</h4>
+                                <p><strong>Amount:</strong> $${data.amount} ${data.currency}</p>
+                                <p><strong>Status:</strong> ${data.status}</p>
+                                <p><strong>Transaction ID:</strong> ${data.transaction_id || data.authorization_id}</p>
+                                <p><strong>Payment Method:</strong> ${data.payment_method.brand.toUpperCase()} ending in ${data.payment_method.last4}</p>
+                                ${data.mockMode ? '<p><strong>Mode:</strong> <span class="gp-badge gp-badge-warning">Mock Mode</span></p>' : ''}
+                    `;
+                    
+                    if (type === 'schedule' && data.capture_info) {
+                        successHtml += `
+                            <p><strong>Capture Available:</strong> ${data.capture_info.can_capture ? 'Yes' : 'No'}</p>
+                            <p><strong>Expires:</strong> ${new Date(data.capture_info.expires_at).toLocaleString()}</p>
+                        `;
+                    }
+                    
+                    successHtml += `
+                            </div>
+                        </div>
+                    `;
+                    
+                    resultContainer.innerHTML = successHtml;
+                } else {
+                    displayError('payment-result', result.message || 'Payment processing failed');
+                }
+            } catch (error) {
+                displayError('payment-result', 'Error processing payment: ' + error.message);
+            }
+        }
+
+        // Format card number with spaces
+        function formatCardNumber(event) {
+            let value = event.target.value.replace(/\s/g, '');
+            let formattedValue = value.replace(/(.{4})/g, '$1 ').trim();
+            if (formattedValue.length > 19) {
+                formattedValue = formattedValue.substring(0, 19);
+            }
+            event.target.value = formattedValue;
+        }
+
+        // Format CVV (numbers only)
+        function formatCVV(event) {
+            event.target.value = event.target.value.replace(/\D/g, '');
+        }
+
+        // Display error message
+        function displayError(containerId, message) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = `
+                <div class="gp-alert gp-alert-error">
+                    <strong>Error:</strong> ${message}
+                </div>
+            `;
+            container.classList.remove('gp-hidden');
+        }
+    </script>
 </body>
 </html>
