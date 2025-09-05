@@ -58,6 +58,10 @@ switch ($path) {
         require_once 'schedule-payment.php';
         break;
         
+    case 'mock-mode':
+        require_once 'mock-mode.php';
+        break;
+        
     default:
         http_response_code(404);
         echo json_encode([
@@ -68,7 +72,9 @@ switch ($path) {
                 'GET /payment-methods' => 'Get payment methods',
                 'POST /payment-methods' => 'Create payment method',
                 'POST /charge' => 'Process immediate charge ($25)',
-                'POST /schedule-payment' => 'Schedule payment authorization ($50)'
+                'POST /schedule-payment' => 'Schedule payment authorization ($50)',
+                'GET /mock-mode' => 'Get mock mode status',
+                'POST /mock-mode' => 'Toggle mock mode on/off'
             ]
         ]);
 }
