@@ -12,6 +12,7 @@ declare(strict_types=1);
 require_once 'PaymentUtils.php';
 require_once 'JsonStorage.php';
 require_once 'MockResponses.php';
+require_once 'mock-mode.php';
 
 // Handle CORS
 PaymentUtils::handleCORS();
@@ -70,9 +71,9 @@ try {
         }
 
         $vaultToken = null;
-        $mockMode = false;
+        $mockMode = MockModeConfig::isMockModeEnabled();
 
-        if (!empty($_ENV['SECRET_API_KEY'])) {
+        if (!$mockMode && !empty($_ENV['SECRET_API_KEY'])) {
             try {
                 $vaultToken = PaymentUtils::createVaultTokenWithSDK($data);
             } catch (\Exception $e) {
