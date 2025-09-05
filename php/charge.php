@@ -11,6 +11,7 @@ declare(strict_types=1);
 require_once 'PaymentUtils.php';
 require_once 'JsonStorage.php';
 require_once 'MockResponses.php';
+require_once 'mock-mode.php';
 
 // Handle CORS
 PaymentUtils::handleCORS();
@@ -35,13 +36,24 @@ try {
         PaymentUtils::sendErrorResponse(404, 'Payment method not found', 'NOT_FOUND');
     }
 
+    // Defensive checks for required fields
+    if (empty($paymentMethod['cardBrand'])) {
+        error_log("Payment method {$data['paymentMethodId']} missing cardBrand field");
+        PaymentUtils::sendErrorResponse(400, 'Payment method data is incomplete', 'INVALID_PAYMENT_METHOD');
+    }
+    
+    if (empty($paymentMethod['last4'])) {
+        error_log("Payment method {$data['paymentMethodId']} missing last4 field");
+        PaymentUtils::sendErrorResponse(400, 'Payment method data is incomplete', 'INVALID_PAYMENT_METHOD');
+    }
+
     $amount = 25.00;
     $currency = 'USD';
     
     $transactionResult = null;
-    $mockMode = false;
+    $mockMode = MockModeConfig::isMockModeEnabled();
 
-    if (!empty($_ENV['SECRET_API_KEY'])) {
+    if (!$mockMode && !empty($_ENV['SECRET_API_KEY'])) {
         try {
             $transactionResult = PaymentUtils::processPaymentWithSDK($paymentMethod['vaultToken'], $amount, $currency);
         } catch (\Exception $e) {
@@ -65,10 +77,10 @@ try {
     }
 
     $response = array_merge($transactionResult, [
-        'payment_method' => [
+        'paymentMethod' => [
             'id' => $paymentMethod['id'],
             'type' => 'card',
-            'brand' => $paymentMethod['cardBrand'],
+            'brand' => $paymentMethod['cardBrand'] ?? 'Unknown',
             'last4' => $paymentMethod['last4'],
             'nickname' => $paymentMethod['nickname'] ?? ''
         ],
