@@ -91,6 +91,53 @@ class JsonStorage
     }
 
     /**
+     * Update an existing payment method
+     */
+    public static function updatePaymentMethod(string $id, array $updateData): bool
+    {
+        $methods = self::readPaymentMethods();
+        $updated = false;
+        
+        foreach ($methods as $index => $method) {
+            if ($method['id'] === $id) {
+                // Update only allowed fields
+                if (isset($updateData['nickname'])) {
+                    $methods[$index]['nickname'] = $updateData['nickname'];
+                }
+                
+                if (isset($updateData['isDefault'])) {
+                    // If setting this as default, unset default from all others
+                    if ($updateData['isDefault']) {
+                        foreach ($methods as $i => $m) {
+                            $methods[$i]['isDefault'] = false;
+                        }
+                    }
+                    $methods[$index]['isDefault'] = $updateData['isDefault'];
+                }
+                
+                // Update timestamp
+                $methods[$index]['updatedAt'] = date('c');
+                $updated = true;
+                break;
+            }
+        }
+        
+        if ($updated) {
+            return self::writePaymentMethods($methods);
+        }
+        
+        return false;
+    }
+
+    /**
+     * Check if a payment method exists by ID
+     */
+    public static function paymentMethodExists(string $id): bool
+    {
+        return self::findPaymentMethod($id) !== null;
+    }
+
+    /**
      * Validate payment method data
      */
     public static function validatePaymentMethod(array $data): array
@@ -112,6 +159,26 @@ class JsonStorage
         
         if (empty($data['expiryYear']) || !is_numeric($data['expiryYear'])) {
             $errors[] = 'Valid expiry year is required';
+        }
+        
+        return $errors;
+    }
+
+    /**
+     * Validate update data for payment method editing
+     */
+    public static function validateUpdateData(array $data): array
+    {
+        $errors = [];
+        
+        // Nickname validation (optional)
+        if (isset($data['nickname']) && strlen($data['nickname']) > 100) {
+            $errors[] = 'Nickname must be 100 characters or less';
+        }
+        
+        // isDefault validation (optional but must be boolean if provided)
+        if (isset($data['isDefault']) && !is_bool($data['isDefault'])) {
+            $errors[] = 'isDefault must be a boolean value';
         }
         
         return $errors;
