@@ -58,7 +58,8 @@ try {
             $authorizationResult = PaymentUtils::createAuthorizationWithSDK($paymentMethod['vaultToken'], $amount, $currency);
         } catch (\Exception $e) {
             error_log('Global Payments SDK authorization error: ' . $e->getMessage());
-            $mockMode = true;
+            // Return actual SDK error instead of falling back to mock mode
+            PaymentUtils::sendErrorResponse(422, 'Authorization failed: ' . $e->getMessage(), 'AUTHORIZATION_DECLINED');
         }
     } else {
         $mockMode = true;
@@ -76,7 +77,18 @@ try {
         }
     }
 
-    $response = array_merge($authorizationResult, [
+    // Convert snake_case fields to camelCase for frontend compatibility
+    $response = [
+        'authorizationId' => $authorizationResult['authorization_id'] ?? null,
+        'transactionId' => $authorizationResult['transaction_id'] ?? null,
+        'amount' => $authorizationResult['amount'],
+        'currency' => $authorizationResult['currency'],
+        'status' => $authorizationResult['status'],
+        'responseCode' => $authorizationResult['response_code'] ?? null,
+        'responseMessage' => $authorizationResult['response_message'] ?? null,
+        'timestamp' => $authorizationResult['timestamp'],
+        'expiresAt' => $authorizationResult['expires_at'] ?? null,
+        'gatewayResponse' => $authorizationResult['gateway_response'] ?? null,
         'paymentMethod' => [
             'id' => $paymentMethod['id'],
             'type' => 'card',
@@ -89,7 +101,7 @@ try {
             'canCapture' => true,
             'expiresAt' => $authorizationResult['expires_at'] ?? date('c', strtotime('+7 days'))
         ]
-    ]);
+    ];
 
     PaymentUtils::sendSuccessResponse($response, 'Payment scheduled successfully');
 

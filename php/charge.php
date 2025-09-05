@@ -58,7 +58,8 @@ try {
             $transactionResult = PaymentUtils::processPaymentWithSDK($paymentMethod['vaultToken'], $amount, $currency);
         } catch (\Exception $e) {
             error_log('Global Payments SDK payment error: ' . $e->getMessage());
-            $mockMode = true;
+            // Return actual SDK error instead of falling back to mock mode
+            PaymentUtils::sendErrorResponse(422, 'Payment failed: ' . $e->getMessage(), 'PAYMENT_DECLINED');
         }
     } else {
         $mockMode = true;
@@ -76,7 +77,16 @@ try {
         }
     }
 
-    $response = array_merge($transactionResult, [
+    // Convert snake_case fields to camelCase for frontend compatibility
+    $response = [
+        'transactionId' => $transactionResult['transaction_id'] ?? null,
+        'amount' => $transactionResult['amount'],
+        'currency' => $transactionResult['currency'],
+        'status' => $transactionResult['status'],
+        'responseCode' => $transactionResult['response_code'] ?? null,
+        'responseMessage' => $transactionResult['response_message'] ?? null,
+        'timestamp' => $transactionResult['timestamp'],
+        'gatewayResponse' => $transactionResult['gateway_response'] ?? null,
         'paymentMethod' => [
             'id' => $paymentMethod['id'],
             'type' => 'card',
@@ -85,7 +95,7 @@ try {
             'nickname' => $paymentMethod['nickname'] ?? ''
         ],
         'mockMode' => $mockMode
-    ]);
+    ];
 
     PaymentUtils::sendSuccessResponse($response, 'Payment processed successfully');
 

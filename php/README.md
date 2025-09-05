@@ -71,11 +71,17 @@ JSON-based storage system:
 - Mock data generation for testing scenarios
 
 ### Error Handling
-Comprehensive error management:
-- Structured JSON error responses with error codes
-- HTTP status code mapping for different error types
-- Logging for debugging and monitoring
-- Graceful degradation to mock mode when needed
+Comprehensive error management with enhanced live mode support:
+- **Live Mode Errors**: When not in mock mode, actual SDK errors are returned directly to clients with specific error codes (PAYMENT_DECLINED, AUTHORIZATION_DECLINED)
+- **Mock Mode Fallback**: Mock responses only used when explicitly in mock mode or when SDK is unavailable
+- **Structured Responses**: JSON error responses with HTTP status codes and descriptive error messages
+- **Detailed Logging**: Error logging for debugging and monitoring payment processing issues
+- **Field Consistency**: Automatic conversion from snake_case (SDK/internal) to camelCase (frontend) field naming
+
+### Recent Improvements
+- **Enhanced Error Transparency**: `/charge` and `/schedule-payment` endpoints now return actual SDK error messages instead of falling back to mock responses when payment processing fails in live mode
+- **Frontend Compatibility**: Transaction IDs and authorization IDs properly mapped from snake_case internal format to camelCase for frontend display
+- **Robust Payment Processing**: Improved error handling ensures clear communication of payment failures without masking underlying issues
 
 ## API Endpoints
 
