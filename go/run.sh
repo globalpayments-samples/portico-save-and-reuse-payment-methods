@@ -7,4 +7,4 @@ set -e
 go mod download
 
 # Start the server
-go run main.go
+go run .
