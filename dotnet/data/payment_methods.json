@@ -1,0 +1,50 @@
+[
+  {
+    "id": "pm_1757340299_1dfab52f7",
+    "vaultToken": "6HA6vF127zAdP6kZX9c0016",
+    "cardBrand": "Visa",
+    "last4": "0016",
+    "expiryMonth": "12",
+    "expiryYear": "28",
+    "nickname": "Test Visa Card",
+    "isDefault": true,
+    "createdAt": "2025-09-08T14:04:59.061497Z",
+    "updatedAt": "2025-09-08T14:04:59.061511Z"
+  },
+  {
+    "id": "pm_1757340315_519dc890b",
+    "vaultToken": "3E00J01cc32dNCRH26Z0014",
+    "cardBrand": "Mastercard",
+    "last4": "0014",
+    "expiryMonth": "12",
+    "expiryYear": "28",
+    "nickname": "Test MasterCard",
+    "isDefault": false,
+    "createdAt": "2025-09-08T14:05:15.10565Z",
+    "updatedAt": "2025-09-08T14:05:15.10565Z"
+  },
+  {
+    "id": "pm_1757340329_c2b78885a",
+    "vaultToken": "b48LhZ1hN4HEKXbJidv1018",
+    "cardBrand": "American Express",
+    "last4": "1018",
+    "expiryMonth": "12",
+    "expiryYear": "28",
+    "nickname": "Test Amex 2-digit year",
+    "isDefault": false,
+    "createdAt": "2025-09-08T14:05:29.273455Z",
+    "updatedAt": "2025-09-08T14:05:29.273455Z"
+  },
+  {
+    "id": "pm_1757340820_75b3168a6",
+    "vaultToken": "3E00J01cc32dNCRH26Z0014",
+    "cardBrand": "Mastercard",
+    "last4": "0014",
+    "expiryMonth": "12",
+    "expiryYear": "28",
+    "nickname": "Test MasterCard 2",
+    "isDefault": false,
+    "createdAt": "2025-09-08T14:13:40.930747Z",
+    "updatedAt": "2025-09-08T14:13:40.930747Z"
+  }
+]

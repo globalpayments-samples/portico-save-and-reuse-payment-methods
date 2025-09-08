@@ -1,19 +1,40 @@
-# .NET Card Payment Example
+# .NET Vault One-Click Payment System
 
-This example demonstrates card payment processing using ASP.NET Core and the Global Payments SDK.
+This example demonstrates a comprehensive vault one-click payment system using ASP.NET Core and the Global Payments SDK. It includes payment method management, secure tokenization, mock testing capabilities, and a complete web interface.
+
+## Features
+
+- **Payment Method Management** - Store, retrieve, and manage customer payment methods securely
+- **Vault Tokenization** - Securely tokenize and store payment methods using Global Payments vault
+- **One-Click Payments** - Process charges and scheduled payments using stored payment methods
+- **Mock Mode** - Test payment flows with simulated responses without hitting live APIs
+- **Comprehensive UI** - Complete web interface with payment method management and transaction processing
+- **Test Card Integration** - Built-in Heartland certification test cards for development and testing
 
 ## Requirements
 
-- .NET 6.0 or later
+- .NET 9.0 or later
 - Global Payments account and API credentials
 
 ## Project Structure
 
-- `Program.cs` - Main application file containing server setup and payment processing
-- `wwwroot/index.html` - Client-side payment form
+- `Program.cs` - Main application with all payment processing logic and API endpoints
+- `Models.cs` - Data models and response structures
+- `PaymentUtils.cs` - Payment utility functions and SDK integration
+- `JsonStorage.cs` - JSON-based storage for payment methods
+- `MockResponses.cs` - Mock data generation for testing scenarios
+- `wwwroot/index.html` - Complete web interface with payment management
 - `.env.sample` - Template for environment variables
 - `run.sh` - Convenience script to run the application
-- `appsettings.json` - Application configuration file
+
+## Recent Improvements
+
+### ✅ Expiration Date Handling Fix (September 2024)
+Fixed a critical issue where payment methods with 4-digit expiration years (e.g., "2028") were causing API errors. The system now correctly:
+- Accepts both 2-digit ("28") and 4-digit ("2028") year formats from the frontend
+- Converts 4-digit years to 2-digit format for SDK compatibility  
+- Maintains backward compatibility with existing implementations
+- Works seamlessly with all built-in test cards
 
 ## Setup
 
@@ -36,73 +57,270 @@ This example demonstrates card payment processing using ASP.NET Core and the Glo
    ```bash
    dotnet run
    ```
-
-## Implementation Details
-
-### Server Setup
-The application uses ASP.NET Core's minimal API approach to create a lightweight web server that:
-- Serves static files from wwwroot directory
-- Processes payment requests
-- Provides configuration endpoint for client-side SDK
-
-### SDK Configuration
-The Global Payments SDK is configured using environment variables and the PorticoConfig class:
-- Loads credentials from .env file
-- Sets up service URL for API communication
-- Configures developer identification
-
-### Payment Processing
-Payment processing flow:
-1. Client submits payment token and billing zip
-2. Server creates CreditCardData with token
-3. Creates Address with postal code
-4. Processes $10 USD charge
-5. Returns success/error response
-
-### Error Handling
-Implements comprehensive error handling:
-- Catches and processes API exceptions
-- Returns appropriate HTTP status codes
-- Provides meaningful error messages
+6. Open your browser to `http://localhost:8000`
 
 ## API Endpoints
 
+### GET /health
+System health check endpoint.
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "status": "healthy",
+    "timestamp": "2024-09-08T14:00:00Z",
+    "service": "vault-one-click-dotnet",
+    "version": "1.0.0"
+  },
+  "message": "System is healthy"
+}
+```
+
 ### GET /config
-Returns public API key for client-side SDK initialization.
+Returns configuration for frontend SDK initialization.
 
-Response:
+**Response:**
 ```json
 {
-    "publicApiKey": "pk_test_xxx"
+  "success": true,
+  "data": {
+    "publicApiKey": "pk_test_xxx",
+    "mockMode": false
+  }
 }
 ```
 
-### POST /process-payment
-Processes a payment using the provided token and billing information.
+### GET /payment-methods
+Retrieve all stored payment methods for the customer.
 
-Request Parameters:
-- `payment_token` (string, required) - Token from client-side SDK
-- `billing_zip` (string, required) - Billing postal code
-
-Response (Success):
+**Response:**
 ```json
 {
-    "message": "Payment successful! Transaction ID: xxx"
+  "success": true,
+  "data": [
+    {
+      "id": "pm_123456789",
+      "type": "card",
+      "last4": "1234",
+      "brand": "Visa",
+      "expiry": "12/28",
+      "isDefault": true,
+      "nickname": "My Primary Card"
+    }
+  ]
 }
 ```
 
-Response (Error):
+### POST /payment-methods
+Create a new payment method or edit an existing one.
+
+**Create Request:**
 ```json
 {
-    "detail": "Error message"
+  "cardNumber": "4012002000060016",
+  "expiryMonth": "12",
+  "expiryYear": "2028",
+  "cvv": "123",
+  "nickname": "Test Visa Card",
+  "isDefault": true
 }
 ```
 
-## Security Considerations
+**Edit Request:**
+```json
+{
+  "id": "pm_123456789",
+  "nickname": "Updated Nickname",
+  "isDefault": false
+}
+```
 
-This example demonstrates basic implementation. For production use, consider:
-- Implementing additional input validation
-- Adding request rate limiting
-- Including security headers
-- Implementing proper logging
-- Adding payment fraud prevention measures
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "pm_123456789",
+    "vaultToken": "vault_abc123def456",
+    "type": "card",
+    "last4": "0016",
+    "brand": "Visa",
+    "expiry": "12/28",
+    "nickname": "Test Visa Card",
+    "isDefault": true,
+    "mockMode": false
+  }
+}
+```
+
+### POST /charge
+Process a $25.00 charge using a stored payment method.
+
+**Request:**
+```json
+{
+  "paymentMethodId": "pm_123456789"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "transactionId": "txn_987654321",
+    "amount": 25.00,
+    "currency": "USD",
+    "status": "approved",
+    "responseCode": "00",
+    "responseMessage": "APPROVAL",
+    "timestamp": "2024-09-08T14:00:00Z",
+    "gatewayResponse": {
+      "authCode": "123456",
+      "referenceNumber": "ref_789012345"
+    },
+    "paymentMethod": {
+      "id": "pm_123456789",
+      "brand": "Visa",
+      "last4": "0016",
+      "nickname": "Test Visa Card"
+    },
+    "mockMode": false
+  }
+}
+```
+
+### POST /schedule-payment
+Create a $50.00 authorization for scheduled payment.
+
+**Request:**
+```json
+{
+  "paymentMethodId": "pm_123456789"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "authorizationId": "auth_456789012",
+    "transactionId": "txn_345678901",
+    "amount": 50.00,
+    "currency": "USD",
+    "status": "authorized",
+    "expiresAt": "2024-09-15T14:00:00Z",
+    "captureInfo": {
+      "canCapture": true,
+      "expiresAt": "2024-09-15T14:00:00Z"
+    },
+    "mockMode": false
+  }
+}
+```
+
+### GET /mock-mode
+Get current mock mode status.
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "isEnabled": false
+  },
+  "message": "Mock mode is disabled"
+}
+```
+
+### POST /mock-mode
+Toggle mock mode on/off.
+
+**Request:**
+```json
+{
+  "isEnabled": true
+}
+```
+
+## Mock Mode
+
+Mock mode allows you to test payment flows without hitting live APIs:
+- **Enable/Disable**: Use the toggle in the web interface or the `/mock-mode` endpoint
+- **Simulated Responses**: Generates realistic transaction data
+- **Test Scenarios**: Different card numbers produce different response scenarios
+- **Safe Testing**: No actual charges or API calls are made
+- **Development**: Perfect for development and integration testing
+
+## Built-in Test Cards
+
+The system includes Heartland certification test cards:
+- **Visa**: 4012002000060016
+- **MasterCard**: 2223000010005780, 5473500000000014
+- **Discover**: 6011000990156527  
+- **American Express**: 372700699251018
+- **JCB**: 3566007770007321
+
+All test cards use:
+- **Expiry**: 12/2028 (automatically handled by the expiration date fix)
+- **CVV**: 123 (1234 for Amex)
+
+## Implementation Details
+
+### SDK Configuration
+- Uses PorticoConfig for Global Payments SDK setup
+- Loads credentials from environment variables
+- Configures service URLs and developer identification
+- Handles both live and certification environments
+
+### Payment Processing
+1. **Tokenization**: Create secure vault tokens for payment methods
+2. **Storage**: Store payment method metadata in JSON format
+3. **Processing**: Use vault tokens for charges and authorizations
+4. **Error Handling**: Comprehensive error handling with meaningful messages
+
+### Data Storage
+- JSON file-based storage for payment methods
+- Thread-safe operations for concurrent access
+- Automatic backup and recovery capabilities
+- Easy migration to database systems
+
+### Security Features
+- Vault tokenization ensures sensitive data never touches your servers
+- Environment-based configuration management
+- CORS protection for API endpoints
+- Input validation and sanitization
+
+## Production Considerations
+
+For production deployment, enhance with:
+- **Database Integration** - Replace JSON storage with proper database
+- **Authentication** - Add user authentication and authorization
+- **Rate Limiting** - Implement API rate limiting
+- **Monitoring** - Add logging, metrics, and monitoring
+- **Security** - Implement additional security headers and validation
+- **PCI Compliance** - Follow PCI DSS requirements
+- **Error Handling** - Enhanced error handling and user notifications
+- **Testing** - Comprehensive unit and integration tests
+
+## Troubleshooting
+
+### Common Issues
+
+**Expiration Date Errors (Fixed)**:
+- Issue: 4-digit years causing API errors
+- Solution: Automatic conversion implemented
+- Status: ✅ Resolved in recent update
+
+**API Configuration**:
+- Ensure SECRET_API_KEY is set in .env file
+- Verify API key is for the correct environment (test/production)
+- Check service URLs match your account configuration
+
+**Payment Processing**:
+- Use test cards in certification environment
+- Enable mock mode for development testing
+- Check console logs for detailed error information

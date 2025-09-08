@@ -1,0 +1,230 @@
+namespace CardPaymentSample;
+
+/// <summary>
+/// Standard API response format
+/// </summary>
+public class ApiResponse<T>
+{
+    public bool Success { get; set; }
+    public T? Data { get; set; }
+    public string? Message { get; set; }
+    public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+    public string? ErrorCode { get; set; }
+}
+
+/// <summary>
+/// Health check data
+/// </summary>
+public class HealthData
+{
+    public string Status { get; set; } = "healthy";
+    public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+    public string Service { get; set; } = "vault-one-click-dotnet";
+    public string Version { get; set; } = "1.0.0";
+}
+
+/// <summary>
+/// Payment method creation request
+/// </summary>
+public class PaymentMethodData
+{
+    public string CardNumber { get; set; } = string.Empty;
+    public string ExpiryMonth { get; set; } = string.Empty;
+    public string ExpiryYear { get; set; } = string.Empty;
+    public string Cvv { get; set; } = string.Empty;
+    public string? Nickname { get; set; }
+    public bool IsDefault { get; set; }
+    public BillingAddress? BillingAddress { get; set; }
+    public string? Id { get; set; } // For editing existing payment methods
+}
+
+/// <summary>
+/// Billing address information
+/// </summary>
+public class BillingAddress
+{
+    public string? Street { get; set; }
+    public string? City { get; set; }
+    public string? State { get; set; }
+    public string? Zip { get; set; }
+    public string? Country { get; set; }
+    public string? Name { get; set; }
+}
+
+/// <summary>
+/// Stored payment method data
+/// </summary>
+public class StoredPaymentMethodData
+{
+    public string VaultToken { get; set; } = string.Empty;
+    public string CardBrand { get; set; } = string.Empty;
+    public string Last4 { get; set; } = string.Empty;
+    public string ExpiryMonth { get; set; } = string.Empty;
+    public string ExpiryYear { get; set; } = string.Empty;
+    public string? Nickname { get; set; }
+    public bool IsDefault { get; set; }
+}
+
+/// <summary>
+/// Payment method as stored in JSON
+/// </summary>
+public class PaymentMethod
+{
+    public string Id { get; set; } = string.Empty;
+    public string VaultToken { get; set; } = string.Empty;
+    public string CardBrand { get; set; } = string.Empty;
+    public string Last4 { get; set; } = string.Empty;
+    public string ExpiryMonth { get; set; } = string.Empty;
+    public string ExpiryYear { get; set; } = string.Empty;
+    public string? Nickname { get; set; }
+    public bool IsDefault { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+}
+
+/// <summary>
+/// Payment method formatted for display
+/// </summary>
+public class FormattedPaymentMethod
+{
+    public string Id { get; set; } = string.Empty;
+    public string Brand { get; set; } = string.Empty;
+    public string Last4 { get; set; } = string.Empty;
+    public string Expiry { get; set; } = string.Empty;
+    public string? Nickname { get; set; }
+    public bool IsDefault { get; set; }
+    public bool MockMode { get; set; }
+}
+
+/// <summary>
+/// Payment processing request
+/// </summary>
+public class PaymentRequest
+{
+    public string PaymentMethodId { get; set; } = string.Empty;
+}
+
+/// <summary>
+/// Payment transaction response
+/// </summary>
+public class PaymentResponse
+{
+    public string TransactionId { get; set; } = string.Empty;
+    public decimal Amount { get; set; }
+    public string Currency { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
+    public string ResponseCode { get; set; } = string.Empty;
+    public string ResponseMessage { get; set; } = string.Empty;
+    public DateTime Timestamp { get; set; }
+    public GatewayResponse GatewayResponse { get; set; } = new();
+}
+
+/// <summary>
+/// Authorization response
+/// </summary>
+public class AuthorizationResponse
+{
+    public string AuthorizationId { get; set; } = string.Empty;
+    public string TransactionId { get; set; } = string.Empty;
+    public decimal Amount { get; set; }
+    public string Currency { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
+    public string ResponseCode { get; set; } = string.Empty;
+    public string ResponseMessage { get; set; } = string.Empty;
+    public DateTime Timestamp { get; set; }
+    public DateTime ExpiresAt { get; set; }
+    public GatewayResponse GatewayResponse { get; set; } = new();
+}
+
+/// <summary>
+/// Gateway response details
+/// </summary>
+public class GatewayResponse
+{
+    public string AuthCode { get; set; } = string.Empty;
+    public string ReferenceNumber { get; set; } = string.Empty;
+}
+
+/// <summary>
+/// Payment method info in responses
+/// </summary>
+public class PaymentMethodInfo
+{
+    public string Id { get; set; } = string.Empty;
+    public string Type { get; set; } = "card";
+    public string Brand { get; set; } = string.Empty;
+    public string Last4 { get; set; } = string.Empty;
+    public string Nickname { get; set; } = string.Empty;
+}
+
+/// <summary>
+/// Capture information
+/// </summary>
+public class CaptureInfo
+{
+    public bool CanCapture { get; set; }
+    public DateTime ExpiresAt { get; set; }
+}
+
+/// <summary>
+/// Decline response
+/// </summary>
+public class DeclineResponse
+{
+    public string ErrorCode { get; set; } = string.Empty;
+    public string ResponseMessage { get; set; } = string.Empty;
+}
+
+/// <summary>
+/// Charge response data
+/// </summary>
+public class ChargeResponseData
+{
+    public string TransactionId { get; set; } = string.Empty;
+    public decimal Amount { get; set; }
+    public string Currency { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
+    public string ResponseCode { get; set; } = string.Empty;
+    public string ResponseMessage { get; set; } = string.Empty;
+    public DateTime Timestamp { get; set; }
+    public GatewayResponse GatewayResponse { get; set; } = new();
+    public PaymentMethodInfo PaymentMethod { get; set; } = new();
+    public bool MockMode { get; set; }
+}
+
+/// <summary>
+/// Schedule payment response data
+/// </summary>
+public class ScheduleResponseData
+{
+    public string AuthorizationId { get; set; } = string.Empty;
+    public string TransactionId { get; set; } = string.Empty;
+    public decimal Amount { get; set; }
+    public string Currency { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
+    public string ResponseCode { get; set; } = string.Empty;
+    public string ResponseMessage { get; set; } = string.Empty;
+    public DateTime Timestamp { get; set; }
+    public DateTime ExpiresAt { get; set; }
+    public GatewayResponse GatewayResponse { get; set; } = new();
+    public PaymentMethodInfo PaymentMethod { get; set; } = new();
+    public bool MockMode { get; set; }
+    public CaptureInfo CaptureInfo { get; set; } = new();
+}
+
+/// <summary>
+/// Mock mode configuration
+/// </summary>
+public class MockModeConfig
+{
+    public bool IsEnabled { get; set; }
+}
+
+/// <summary>
+/// Payment method edit request (nickname only)
+/// </summary>
+public class PaymentMethodEditData
+{
+    public string? Nickname { get; set; }
+    public bool IsDefault { get; set; }
+}
