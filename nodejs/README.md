@@ -1,20 +1,32 @@
-# Node.js Card Payment Example
+# Node.js Vault One-Click Payment System
 
-This example demonstrates card payment processing using Express.js and the Global Payments SDK.
+This example demonstrates a comprehensive vault one-click payment system using Express.js and the Global Payments SDK. It includes payment method management, secure tokenization, mock testing capabilities, and a complete web interface.
+
+## Features
+
+- **Payment Method Management** - Store, retrieve, and manage customer payment methods securely
+- **Vault Tokenization** - Securely tokenize and store payment methods using Global Payments vault
+- **One-Click Payments** - Process charges and scheduled payments using stored payment methods
+- **Mock Mode** - Test payment flows with simulated responses without hitting live APIs
+- **Comprehensive UI** - Complete web interface with payment method management and transaction processing
+- **Test Card Integration** - Built-in Heartland certification test cards for development and testing
 
 ## Requirements
 
-- Node.js 14.x or later
-- npm (Node Package Manager)
+- Node.js 18.x or later
+- npm (Node Package Manager) 8.x or later
 - Global Payments account and API credentials
 
 ## Project Structure
 
-- `server.js` - Main application file containing server setup and payment processing
-- `index.html` - Client-side payment form
-- `package.json` - Project dependencies and scripts
+- `server.js` - Main Express.js application with all API endpoints and payment processing logic
+- `jsonStorage.js` - JSON-based storage utility for payment methods with file operations
+- `paymentUtils.js` - Payment utility functions and Global Payments SDK integration
+- `mockResponses.js` - Mock data generation for testing scenarios and simulated responses
+- `index.html` - Complete web interface with payment method management and transaction processing
+- `package.json` - Node.js dependencies and npm scripts
 - `.env.sample` - Template for environment variables
-- `run.sh` - Convenience script to run the application
+- `run.sh` - Convenience script to install dependencies and run the application
 
 ## Setup
 
@@ -37,76 +49,350 @@ This example demonstrates card payment processing using Express.js and the Globa
    ```bash
    node server.js
    ```
-
-## Implementation Details
-
-### Server Setup
-The application uses Express.js to create a web server that:
-- Serves static files
-- Processes payment requests
-- Provides configuration endpoint for client-side SDK
-- Handles JSON and form-encoded requests
-
-### SDK Configuration
-Global Payments SDK configuration using environment variables:
-- Loads credentials from .env file
-- Sets up service URL for API communication
-- Configures developer identification
-
-### Payment Processing
-Payment processing flow:
-1. Client submits payment token and billing zip
-2. Server creates CreditCardData with token
-3. Creates Address with postal code
-4. Processes $10 USD charge
-5. Returns success/error response
-
-### Error Handling
-Implements comprehensive error handling:
-- Catches and processes API exceptions
-- Differentiates between API and general errors
-- Returns appropriate error messages
+6. Open your browser to `http://localhost:8000`
 
 ## API Endpoints
 
-### GET /config
-Returns public API key for client-side SDK initialization.
+### GET /health
+System health check endpoint.
 
-Response:
+**Response:**
 ```json
 {
-    "publicApiKey": "pk_test_xxx"
+  "success": true,
+  "data": {
+    "status": "healthy",
+    "timestamp": "2024-09-08T14:00:00.000Z",
+    "service": "vault-one-click-nodejs",
+    "version": "1.0.0"
+  },
+  "message": "System is healthy"
 }
 ```
 
-### POST /process-payment
-Processes a payment using the provided token and billing information.
+### GET /config
+Returns configuration for frontend SDK initialization.
 
-Request Parameters:
-- `payment_token` (string, required) - Token from client-side SDK
-- `billing_zip` (string, required) - Billing postal code
-
-Response (Success):
-```
-Payment successful! Transaction ID: xxx
-```
-
-Response (Error):
-```
-API Error: [error message]
-```
-or
-```
-Error: [error message]
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "publicApiKey": "pk_test_xxx",
+    "mockMode": false
+  }
+}
 ```
 
-## Security Considerations
+### GET /payment-methods
+Retrieve all stored payment methods for the customer.
 
-This example demonstrates basic implementation. For production use, consider:
-- Implementing additional input validation
-- Adding request rate limiting
-- Including security headers
-- Implementing proper logging
-- Adding payment fraud prevention measures
-- Using HTTPS in production
-- Configuring Cross-Origin Resource Sharing (CORS) appropriately
+**Response:**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "pm_123456789",
+      "type": "card",
+      "last4": "1234",
+      "brand": "Visa",
+      "expiry": "12/2028",
+      "isDefault": true,
+      "nickname": "My Primary Card"
+    }
+  ]
+}
+```
+
+### POST /payment-methods
+Create a new payment method or edit an existing one.
+
+**Create Request:**
+```json
+{
+  "cardNumber": "4012002000060016",
+  "expiryMonth": "12",
+  "expiryYear": "2028",
+  "cvv": "123",
+  "nickname": "Test Visa Card",
+  "isDefault": true
+}
+```
+
+**Edit Request:**
+```json
+{
+  "id": "pm_123456789",
+  "nickname": "Updated Nickname",
+  "isDefault": false
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "pm_123456789",
+    "vaultToken": "vault_abc123def456",
+    "type": "card",
+    "last4": "0016",
+    "brand": "Visa",
+    "expiry": "12/2028",
+    "nickname": "Test Visa Card",
+    "isDefault": true,
+    "mockMode": false
+  }
+}
+```
+
+### POST /charge
+Process a $25.00 charge using a stored payment method.
+
+**Request:**
+```json
+{
+  "paymentMethodId": "pm_123456789"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "transactionId": "txn_987654321",
+    "amount": 25.00,
+    "currency": "USD",
+    "status": "approved",
+    "responseCode": "00",
+    "responseMessage": "APPROVAL",
+    "timestamp": "2024-09-08T14:00:00.000Z",
+    "gatewayResponse": {
+      "authCode": "123456",
+      "referenceNumber": "ref_789012345"
+    },
+    "paymentMethod": {
+      "id": "pm_123456789",
+      "type": "card",
+      "brand": "Visa",
+      "last4": "0016",
+      "nickname": "Test Visa Card"
+    },
+    "mockMode": false
+  }
+}
+```
+
+### POST /schedule-payment
+Create a $50.00 authorization for scheduled payment.
+
+**Request:**
+```json
+{
+  "paymentMethodId": "pm_123456789"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "authorizationId": "auth_456789012",
+    "transactionId": "txn_345678901",
+    "amount": 50.00,
+    "currency": "USD",
+    "status": "authorized",
+    "expiresAt": "2024-09-15T14:00:00.000Z",
+    "responseCode": "00",
+    "responseMessage": "APPROVAL",
+    "gatewayResponse": {
+      "authCode": "654321",
+      "referenceNumber": "ref_345678901"
+    },
+    "captureInfo": {
+      "canCapture": true,
+      "expiresAt": "2024-09-15T14:00:00.000Z"
+    },
+    "paymentMethod": {
+      "id": "pm_123456789",
+      "type": "card",
+      "brand": "Visa",
+      "last4": "0016",
+      "nickname": "Test Visa Card"
+    },
+    "mockMode": false
+  }
+}
+```
+
+### GET /mock-mode
+Get current mock mode status.
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "isEnabled": false
+  },
+  "message": "Mock mode is disabled"
+}
+```
+
+### POST /mock-mode
+Toggle mock mode on/off.
+
+**Request:**
+```json
+{
+  "isEnabled": true
+}
+```
+
+## Mock Mode
+
+Mock mode allows you to test payment flows without hitting live APIs:
+- **Enable/Disable**: Use the toggle in the web interface or the `/mock-mode` endpoint
+- **Simulated Responses**: Generates realistic transaction data with proper field formatting
+- **Test Scenarios**: Different card numbers produce different response scenarios (success, declines, errors)
+- **Safe Testing**: No actual charges or API calls are made
+- **Development**: Perfect for development and integration testing
+
+### Mock Response Scenarios
+- **Success Cards**: Last 4 digits 1111, 4242, 0000
+- **Decline Cards**: Last 4 digits 0002 (insufficient funds), 0004 (generic decline), 0051 (expired)
+- **Error Cards**: Last 4 digits 0091 (processing error), 0096 (system error)
+
+## Built-in Test Cards
+
+The system includes Heartland certification test cards:
+- **Visa**: 4012002000060016
+- **MasterCard**: 2223000010005780, 5473500000000014
+- **Discover**: 6011000990156527  
+- **American Express**: 372700699251018
+- **JCB**: 3566007770007321
+
+All test cards use:
+- **Expiry**: 12/2028
+- **CVV**: 123 (1234 for Amex)
+
+## Implementation Details
+
+### Express.js Architecture
+- **Modern Express.js**: RESTful API with modular routing and middleware
+- **Async/Await**: Modern JavaScript with proper error handling
+- **CORS Support**: Cross-Origin Resource Sharing for frontend integration
+- **JSON Parsing**: Built-in JSON body parsing for API requests
+- **Static Files**: Serves web interface from root directory
+
+### SDK Configuration
+- Uses Global Payments Node.js SDK with proper configuration
+- Loads credentials from .env file using dotenv package
+- Configures service URLs and developer identification
+- Handles both live and certification environments
+- Implements proper SDK error handling and response processing
+
+### Payment Processing
+1. **Tokenization**: Create secure vault tokens for payment methods using Global Payments SDK
+2. **Storage**: Store payment method metadata in JSON format with atomic file operations
+3. **Processing**: Use vault tokens for charges and authorizations
+4. **Error Handling**: Comprehensive error handling with meaningful HTTP status codes
+5. **Logging**: Console logging for development and debugging
+
+### Data Storage
+- JSON file-based storage using Node.js fs module with atomic operations
+- Thread-safe file operations with proper locking mechanisms
+- Automatic backup and recovery capabilities
+- Easy migration path to database systems (MongoDB, PostgreSQL, etc.)
+
+### Security Features
+- Environment variable configuration management
+- CORS protection for API endpoints
+- Input validation and sanitization
+- Vault tokenization ensures sensitive data never touches your servers
+- Proper error handling without exposing sensitive information
+
+## Production Considerations
+
+For production deployment, enhance with:
+- **Database Integration** - Replace JSON storage with MongoDB, PostgreSQL, or other databases
+- **Authentication** - Add JWT or session-based authentication middleware
+- **Rate Limiting** - Implement API rate limiting with express-rate-limit
+- **Monitoring** - Add logging with Winston and monitoring capabilities
+- **Security** - Implement helmet.js for security headers and additional validation
+- **Process Management** - Use PM2 for production process management
+- **Load Balancing** - Configure nginx or similar for load balancing
+- **PCI Compliance** - Follow PCI DSS requirements for payment processing
+- **Testing** - Comprehensive unit and integration tests with Jest or Mocha
+- **Environment Management** - Use proper environment configuration for different stages
+
+## Development
+
+### Running in Development
+```bash
+npm run dev  # If you have nodemon configured
+# or
+node server.js
+```
+
+### Available Scripts
+```bash
+npm start       # Start the server
+npm test        # Run tests (if configured)
+npm run lint    # Run ESLint (if configured)
+```
+
+### Package Dependencies
+- **express** - Web framework for Node.js
+- **dotenv** - Environment variable management
+- **cors** - Cross-Origin Resource Sharing middleware
+- **globalpayments-api** - Global Payments SDK for Node.js
+
+## Troubleshooting
+
+### Common Issues
+
+**Node.js Version Issues**:
+- Ensure Node.js 18.x or later is installed
+- Check version with `node --version`
+- Update npm with `npm install -g npm@latest`
+
+**Dependency Installation**:
+- Clear npm cache: `npm cache clean --force`
+- Delete node_modules and reinstall: `rm -rf node_modules && npm install`
+- Check for package-lock.json conflicts
+
+**API Configuration**:
+- Ensure SECRET_API_KEY is set in .env file
+- Verify API key is for the correct environment (test/production)
+- Check console output for SDK configuration errors
+
+**Payment Processing**:
+- Use test cards in certification environment
+- Enable mock mode for development testing
+- Check server console logs for detailed error information
+- Verify proper JSON formatting in API requests
+
+**File System Permissions**:
+- Ensure write permissions for data storage directory
+- Check that JSON storage files can be created and modified
+- Verify proper file paths in storage operations
+
+**CORS Issues**:
+- Check browser developer console for CORS errors
+- Verify CORS configuration in server.js
+- Ensure proper headers are set for API responses
+
+### Debug Mode
+Enable debug logging by setting:
+```bash
+DEBUG=* node server.js
+```
+
+Or for specific modules:
+```bash
+DEBUG=express:* node server.js
+```
