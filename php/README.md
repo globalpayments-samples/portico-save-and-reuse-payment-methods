@@ -220,6 +220,68 @@ Response:
 }
 ```
 
+## Troubleshooting
+
+### Common Issues
+
+**PHP Version Issues**:
+- Ensure PHP 8.0 or later is installed
+- Check version with `php --version`
+- Verify required extensions are enabled (curl, json, mbstring)
+- Update PHP from your system package manager or download from https://php.net
+
+**Composer Dependencies**:
+- Run `composer install` to install dependencies
+- Clear composer cache: `composer clear-cache`
+- Update dependencies: `composer update`
+- Check for autoload issues: `composer dump-autoload`
+
+**Web Server Configuration**:
+- Ensure web server (Apache/Nginx) is configured for PHP
+- Verify document root points to project directory
+- Check .htaccess file permissions and mod_rewrite (Apache)
+- Configure proper PHP-FPM settings for production
+
+**API Configuration**:
+- Ensure SECRET_API_KEY is set in .env file
+- Verify API key is for the correct environment (test/production)
+- Check console output for SDK configuration errors
+- Validate .env file format and permissions
+
+**Payment Processing**:
+- Use test cards in certification environment
+- Enable mock mode for development testing
+- Check server error logs for detailed error information
+- Verify proper JSON formatting in API requests
+- Ensure proper error handling in payment endpoints
+
+**File System Permissions**:
+- Ensure write permissions for data storage directory
+- Check that JSON storage files can be created and modified
+- Verify proper file paths in storage operations
+- Set appropriate directory permissions (755) and file permissions (644)
+
+**CORS Issues**:
+- Check browser developer console for CORS errors
+- Verify CORS headers in HTTP responses
+- Ensure proper preflight request handling
+- Configure web server CORS settings if needed
+
+**PHP Error Reporting**:
+- Enable error reporting for development: `error_reporting(E_ALL)`
+- Check PHP error logs for detailed error information
+- Verify proper exception handling in payment processing
+- Use try-catch blocks around SDK operations
+
+### Debug Mode
+Enable detailed error reporting for development:
+```php
+// Add to top of your PHP files for debugging
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+```
+
 ## Security Considerations
 
 This example demonstrates basic implementation. For production use, consider:

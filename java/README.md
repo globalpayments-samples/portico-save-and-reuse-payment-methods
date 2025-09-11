@@ -357,28 +357,64 @@ mvn clean package
 
 ### Common Issues
 
-**Transaction ID Shows "undefined" (Fixed)**:
-- Issue: Frontend displaying "undefined" for Transaction ID
-- Solution: Field naming consistency implemented (camelCase)
-- Status: ✅ Resolved in recent update
+**Java Version Issues**:
+- Ensure Java 11 or later is installed
+- Check version with `java --version`
+- Verify JAVA_HOME environment variable is set correctly
+- Update Java from https://adoptium.net/ or your distribution package manager
 
 **Maven Build Issues**:
 - Ensure Java 11+ is installed and JAVA_HOME is set
 - Run `mvn clean install` to resolve dependency issues
 - Check internet connection for Maven Central downloads
+- Clear Maven local repository: `mvn dependency:purge-local-repository`
+- Verify Maven settings.xml for proxy or mirror configurations
+
+**Servlet Container Issues**:
+- Verify Tomcat embedded server starts correctly
+- Check for conflicting servlet dependencies
+- Ensure proper web.xml configuration (if using traditional deployment)
+- Verify context path and servlet mappings
 
 **Port Conflicts**:
 - Default port is 8000, modify `pom.xml` if needed:
   ```xml
   <cargo.servlet.port>8080</cargo.servlet.port>
   ```
+- Check if port is already in use: `netstat -an | grep 8000`
+- Verify firewall settings allow access to configured port
+
+**Transaction ID Shows "undefined" (Fixed)**:
+- Issue: Frontend displaying "undefined" for Transaction ID
+- Solution: Field naming consistency implemented (camelCase)
+- Status: ✅ Resolved in recent update
 
 **API Configuration**:
 - Ensure SECRET_API_KEY is set in .env file
 - Verify API key is for the correct environment
 - Check servlet initialization logs for SDK configuration errors
+- Validate environment variable loading in servlet context
 
 **Payment Processing**:
 - Use test cards in certification environment
 - Enable mock mode for development testing
 - Check server logs for detailed error information and stack traces
+- Verify proper exception handling in servlet methods
+
+**File System Permissions**:
+- Ensure write permissions for data storage directory
+- Check that JSON storage files can be created and modified
+- Verify proper file paths in storage operations
+- Set appropriate directory permissions on deployment server
+
+**CORS Issues**:
+- Check browser developer console for CORS errors
+- Verify CORS filter configuration in web.xml or servlet annotations
+- Ensure proper preflight request handling
+- Validate allowed origins, methods, and headers in CORS configuration
+
+**Jakarta EE/Servlet Issues**:
+- Verify proper servlet API version (Jakarta EE 9+ uses jakarta.servlet.*)
+- Check for servlet lifecycle issues in initialization
+- Ensure proper request/response handling in doGet/doPost methods
+- Validate servlet mapping annotations or web.xml configuration

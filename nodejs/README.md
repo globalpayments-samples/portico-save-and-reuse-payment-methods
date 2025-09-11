@@ -364,6 +364,20 @@ npm run lint    # Run ESLint (if configured)
 - Clear npm cache: `npm cache clean --force`
 - Delete node_modules and reinstall: `rm -rf node_modules && npm install`
 - Check for package-lock.json conflicts
+- Verify npm registry access: `npm config get registry`
+- Update npm: `npm install -g npm@latest`
+
+**Build and Runtime Issues**:
+- Check for port conflicts (default port 3000)
+- Verify Node.js version compatibility with dependencies
+- Check for conflicting global packages: `npm list -g --depth=0`
+- Resolve peer dependency warnings: `npm install --legacy-peer-deps`
+
+**Environment Variables**:
+- Ensure .env file exists and is properly formatted
+- Verify SECRET_API_KEY and PUBLIC_API_KEY are set
+- Check file permissions on .env file (should not be world-readable)
+- Validate environment variable loading with `console.log(process.env.SECRET_API_KEY)`
 
 **API Configuration**:
 - Ensure SECRET_API_KEY is set in .env file
@@ -385,6 +399,20 @@ npm run lint    # Run ESLint (if configured)
 - Check browser developer console for CORS errors
 - Verify CORS configuration in server.js
 - Ensure proper headers are set for API responses
+- Check CORS middleware installation: `npm list cors`
+- Verify OPTIONS preflight requests are handled correctly
+
+**Express.js Issues**:
+- Check for middleware conflicts or ordering issues
+- Verify Express static file serving configuration
+- Ensure body-parser middleware is properly configured
+- Check for route conflicts or incorrect HTTP methods
+
+**Performance and Memory**:
+- Monitor Node.js memory usage for large deployments
+- Check for memory leaks with `--inspect` flag
+- Optimize JSON parsing for large payloads
+- Consider clustering for production deployments
 
 ### Debug Mode
 Enable debug logging by setting:

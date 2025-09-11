@@ -310,6 +310,30 @@ For production deployment, enhance with:
 
 ### Common Issues
 
+**.NET Version Issues**:
+- Ensure .NET 6.0 or later is installed
+- Check version with `dotnet --version`
+- Verify SDK is installed: `dotnet --list-sdks`
+- Update .NET from https://dotnet.microsoft.com/download
+
+**NuGet Package Issues**:
+- Restore packages: `dotnet restore`
+- Clear NuGet cache: `dotnet nuget locals all --clear`
+- Check for package conflicts in project file
+- Verify package sources: `dotnet nuget list source`
+
+**Build Configuration Issues**:
+- Check for compilation errors: `dotnet build`
+- Verify project file (.csproj) configuration
+- Ensure proper target framework is specified
+- Check for missing references or using statements
+
+**Port and Hosting Issues**:
+- Default port conflicts (check if 5000/5001 are available)
+- Configure custom port: `dotnet run --urls "http://localhost:8080"`
+- Verify HTTPS certificate for development
+- Check firewall settings for port access
+
 **Expiration Date Errors (Fixed)**:
 - Issue: 4-digit years causing API errors
 - Solution: Automatic conversion implemented
@@ -319,8 +343,28 @@ For production deployment, enhance with:
 - Ensure SECRET_API_KEY is set in .env file
 - Verify API key is for the correct environment (test/production)
 - Check service URLs match your account configuration
+- Validate .env file loading in Program.cs
 
 **Payment Processing**:
 - Use test cards in certification environment
 - Enable mock mode for development testing
 - Check console logs for detailed error information
+- Verify proper exception handling in payment endpoints
+
+**File System Permissions**:
+- Ensure write permissions for data storage directory
+- Check that JSON storage files can be created and modified
+- Verify proper file paths in storage operations
+- Set appropriate directory permissions on deployment
+
+**CORS Issues**:
+- Check browser developer console for CORS errors
+- Verify CORS policy configuration in Program.cs
+- Ensure proper preflight request handling
+- Check allowed origins, methods, and headers
+
+**ASP.NET Core Issues**:
+- Verify middleware registration order
+- Check for dependency injection configuration errors
+- Ensure proper controller routing
+- Validate model binding and validation attributes
