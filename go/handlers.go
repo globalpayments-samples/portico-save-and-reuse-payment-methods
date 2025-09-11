@@ -14,19 +14,12 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	secretKey := os.Getenv("SECRET_API_KEY")
-	sdkStatus := "not_configured"
-	if secretKey != "" {
-		sdkStatus = "configured"
-	}
-
 	response := APIResponse{
 		Success: true,
 		Message: "System is healthy",
 		Data: map[string]interface{}{
 			"status":        "healthy",
 			"timestamp":     getCurrentTimestamp(),
-			"sdk_status":    sdkStatus,
 			"storage_status": "operational",
 			"mock_mode":     mockModeEnabled,
 		},
