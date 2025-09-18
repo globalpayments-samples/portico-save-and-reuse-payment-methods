@@ -24,6 +24,37 @@ class MockResponses
     }
 
     /**
+     * Get card details from mock vault token
+     */
+    public static function getCardDetailsFromToken(string $vaultToken): array
+    {
+        // Extract mock data from token pattern or use defaults for demo
+        $mockDetails = [
+            'brand' => 'Visa',
+            'last4' => '0016',
+            'expiryMonth' => '12',
+            'expiryYear' => '28'
+        ];
+
+        // If token contains identifiable patterns, use them
+        if (strpos($vaultToken, 'visa') !== false) {
+            $mockDetails['brand'] = 'Visa';
+            $mockDetails['last4'] = '0016';
+        } elseif (strpos($vaultToken, 'mastercard') !== false || strpos($vaultToken, 'mc') !== false) {
+            $mockDetails['brand'] = 'Mastercard';
+            $mockDetails['last4'] = '5780';
+        } elseif (strpos($vaultToken, 'amex') !== false) {
+            $mockDetails['brand'] = 'American Express';
+            $mockDetails['last4'] = '1018';
+        } elseif (strpos($vaultToken, 'discover') !== false) {
+            $mockDetails['brand'] = 'Discover';
+            $mockDetails['last4'] = '6527';
+        }
+
+        return $mockDetails;
+    }
+
+    /**
      * Generate mock payment response
      */
     public static function getPaymentResponse(float $amount, string $paymentMethodId): array
@@ -66,6 +97,7 @@ class MockResponses
             ]
         ];
     }
+
 
     /**
      * Generate decline responses for testing

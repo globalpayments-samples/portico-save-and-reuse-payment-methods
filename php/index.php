@@ -7,9 +7,8 @@ declare(strict_types=1);
  *
  * This script routes requests to individual endpoint files:
  * - /health -> health.php
- * - /payment-methods -> payment-methods.php  
+ * - /payment-methods -> payment-methods.php
  * - /charge -> charge.php
- * - /schedule-payment -> schedule-payment.php
  *
  * PHP version 7.4 or higher
  *
@@ -45,19 +44,20 @@ switch ($path) {
     case 'health':
         require_once 'health.php';
         break;
-        
+
+    case 'config':
+        require_once 'config.php';
+        break;
+
     case 'payment-methods':
         require_once 'payment-methods.php';
         break;
-        
+
     case 'charge':
         require_once 'charge.php';
         break;
-        
-    case 'schedule-payment':
-        require_once 'schedule-payment.php';
-        break;
-        
+
+
     case 'mock-mode':
         require_once 'mock-mode.php';
         break;
@@ -69,10 +69,10 @@ switch ($path) {
             'message' => 'Endpoint not found',
             'available_endpoints' => [
                 'GET /health' => 'System health check',
+                'GET /config' => 'Get SDK configuration',
                 'GET /payment-methods' => 'Get payment methods',
                 'POST /payment-methods' => 'Create payment method',
                 'POST /charge' => 'Process immediate charge ($25)',
-                'POST /schedule-payment' => 'Schedule payment authorization ($50)',
                 'GET /mock-mode' => 'Get mock mode status',
                 'POST /mock-mode' => 'Toggle mock mode on/off'
             ]

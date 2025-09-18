@@ -6,6 +6,7 @@ require_once 'vendor/autoload.php';
 
 use Dotenv\Dotenv;
 use GlobalPayments\Api\Entities\Address;
+use GlobalPayments\Api\Entities\Customer;
 use GlobalPayments\Api\PaymentMethods\CreditCardData;
 use GlobalPayments\Api\ServiceConfigs\Gateways\PorticoConfig;
 use GlobalPayments\Api\ServicesContainer;
@@ -30,6 +31,15 @@ class PaymentUtils
         $config->serviceUrl = 'https://cert.api2.heartlandportico.com';
         
         ServicesContainer::configureService($config);
+    }
+
+    /**
+     * Generate unique identifier for payment methods and other entities
+     */
+    public static function generateIdentifier(string $type): string
+    {
+        $identifierBase = '%s-%s-%s';
+        return sprintf($identifierBase, $type, date('Ymd'), substr(str_shuffle('abcdefghijklmnopqrstuvwxyz0123456789'), 0, 8));
     }
 
     /**
@@ -66,36 +76,105 @@ class PaymentUtils
     }
 
     /**
-     * Create vault token using Global Payments SDK
+     * Determine card brand from Global Payments card type
      */
-    public static function createVaultTokenWithSDK(array $data): string
+    public static function determineCardBrandFromType(string $cardType): string
+    {
+        $cardType = strtolower($cardType);
+        
+        switch ($cardType) {
+            case 'visa':
+                return 'Visa';
+            case 'mastercard':
+            case 'mc':
+                return 'Mastercard';
+            case 'amex':
+            case 'americanexpress':
+                return 'American Express';
+            case 'discover':
+                return 'Discover';
+            case 'jcb':
+                return 'JCB';
+            default:
+                return 'Unknown';
+        }
+    }
+
+    /**
+     * Create multi-use token with customer data attached
+     */
+    public static function createMultiUseTokenWithCustomer(string $paymentToken, array $customerData, array $cardDetails): array
     {
         try {
             $card = new CreditCardData();
-            $card->number = $data['cardNumber'];
-            $card->expMonth = $data['expiryMonth'];
-            $card->expYear = $data['expiryYear'];
-            $card->cvn = $data['cvv'];
-            
-            if (!empty($data['billingAddress'])) {
-                $address = new Address();
-                $address->streetAddress1 = $data['billingAddress']['street'] ?? '';
-                $address->city = $data['billingAddress']['city'] ?? '';
-                $address->state = $data['billingAddress']['state'] ?? '';
-                $address->postalCode = $data['billingAddress']['zip'] ?? '';
-                $address->country = $data['billingAddress']['country'] ?? 'US';
-                $card->cardHolderName = $data['billingAddress']['name'] ?? '';
-            }
+            $card->token = $paymentToken;
 
-            $response = $card->tokenize()->execute();
-            
-            if ($response->responseCode === '00' && !empty($response->token)) {
-                return $response->token;
+            // Create address from customer data
+            $address = new Address();
+            $address->streetAddress1 = trim($customerData['street_address'] ?? '');
+            $address->city = trim($customerData['city'] ?? '');
+            $address->province = trim($customerData['state'] ?? '');
+            $address->postalCode = self::sanitizePostalCode($customerData['billing_zip'] ?? '');
+            $address->country = trim($customerData['country'] ?? '');
+
+            $response = $card->verify()
+                ->withCurrency('USD')
+                ->withRequestMultiUseToken(true)
+                ->withAddress($address)
+                ->execute();
+
+            if ($response->responseCode === '00') {
+                $brand = self::determineCardBrandFromType($cardDetails['cardType'] ?? '');
+
+                return [
+                    'multiUseToken' => $response->token ?? $paymentToken,
+                    'brand' => $brand,
+                    'last4' => $cardDetails['cardLast4'] ?? '',
+                    'expiryMonth' => $cardDetails['expiryMonth'] ?? '',
+                    'expiryYear' => $cardDetails['expiryYear'] ?? '',
+                    'customerData' => $customerData
+                ];
             } else {
-                throw new \Exception('Tokenization failed: ' . ($response->responseMessage ?? 'Unknown error'));
+                throw new \Exception('Multi-use token creation failed: ' . ($response->responseMessage ?? 'Unknown error'));
             }
         } catch (\Exception $e) {
-            error_log('SDK tokenization error: ' . $e->getMessage());
+            error_log('Multi-use token creation error: ' . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
+     * Get card details from vault token using Global Payments SDK
+     */
+    public static function getCardDetailsFromToken(string $vaultToken): array
+    {
+        try {
+            $card = new CreditCardData();
+            $card->token = $vaultToken;
+
+            $response = $card->verify()
+                ->withCurrency('USD')
+                ->withRequestMultiUseToken(true)
+                ->execute();
+
+            if ($response->responseCode === '00') {
+                $cardBrand = self::determineCardBrandFromType($response->cardType ?? '');
+                $last4 = $response->cardLast4 ?? '';
+                $expiryMonth = str_pad($response->cardExpMonth ?? '', 2, '0', STR_PAD_LEFT);
+                $expiryYear = substr($response->cardExpYear ?? '', -2);
+
+                return [
+                    'brand' => $cardBrand,
+                    'last4' => $last4,
+                    'expiryMonth' => $expiryMonth,
+                    'expiryYear' => $expiryYear,
+                    'token' => $response->token ?? ''
+                ];
+            } else {
+                throw new \Exception('Token verification failed: ' . ($response->responseMessage ?? 'Unknown error'));
+            }
+        } catch (\Exception $e) {
+            error_log('SDK token lookup error: ' . $e->getMessage());
             throw $e;
         }
     }
@@ -173,6 +252,7 @@ class PaymentUtils
             throw $e;
         }
     }
+
 
     /**
      * Send success response

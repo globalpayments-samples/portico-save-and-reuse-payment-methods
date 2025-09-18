@@ -45,10 +45,12 @@ try {
         ],
         'endpoints' => [
             'GET /health' => 'System health check',
-            'GET /payment-methods' => 'Retrieve saved payment methods',
-            'POST /payment-methods' => 'Create new payment method',
-            'POST /charge' => 'Process immediate payment ($25.00)',
-            'POST /schedule-payment' => 'Create delayed charge authorization ($50.00)'
+            'GET /config' => 'Get SDK configuration',
+            'GET /payment-methods' => 'Get payment methods',
+            'POST /payment-methods' => 'Create payment method',
+            'POST /charge' => 'Process immediate charge ($25)',
+            'GET /mock-mode' => 'Get mock mode status',
+            'POST /mock-mode' => 'Toggle mock mode on/off'
         ]
     ];
     

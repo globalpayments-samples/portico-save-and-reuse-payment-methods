@@ -39,7 +39,7 @@ if (isset($pathInfo['extension']) && in_array(strtolower($pathInfo['extension'])
 }
 
 // Route API calls to index.php (our API router)
-$apiPaths = ['health', 'payment-methods', 'charge', 'schedule-payment', 'config', 'mock-mode'];
+$apiPaths = ['health', 'payment-methods', 'charge', 'config', 'mock-mode'];
 if (in_array($path, $apiPaths)) {
     require_once 'index.php';
     return true;

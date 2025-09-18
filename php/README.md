@@ -1,6 +1,6 @@
-# Vault One-Click Payment API
+# Vault One-Click Payment System
 
-A comprehensive PHP API system for vault-based payment processing using the Global Payments SDK. This application provides secure payment method storage and processing with both immediate charges and scheduled payment authorizations.
+A PHP-based vault payment system that creates multi-use tokens with customer data for seamless one-click payments using the Global Payments SDK. Features secure payment method storage with integrated customer information and real-time payment processing.
 
 ## Requirements
 
@@ -8,22 +8,23 @@ A comprehensive PHP API system for vault-based payment processing using the Glob
 - Composer
 - Global Payments account and API credentials (optional - includes mock mode)
 
+## Key Features
+
+- **Multi-Use Tokens with Customer Data**: Creates vault tokens that include customer billing information
+- **Integrated Customer Management**: Associates customer details directly with payment tokens
+- **One-Click Payment Flow**: Streamlined process from card entry to payment processing
+- **Mock Mode Support**: Test functionality without live API credentials
+- **Real-Time Processing**: Immediate charges ($25)
+
 ## Project Structure
 
-- `index.php` - Main API router with CORS handling
-- `config.php` - Configuration endpoint for client-side SDK
-- `health.php` - System health check endpoint
-- `payment-methods.php` - Payment method management (vault tokens)
-- `charge.php` - Immediate payment processing ($25.00)
-- `schedule-payment.php` - Payment authorization scheduling ($50.00)
-- `PaymentUtils.php` - Core payment utilities and SDK integration
-- `JsonStorage.php` - JSON-based data storage for payment methods
-- `MockResponses.php` - Mock payment responses for testing
-- `index.html` - Client-side demo interface
-- `data/` - JSON storage directory for payment methods
-- `composer.json` - Project dependencies
-- `.env.sample` - Template for environment variables
-- `run.sh` - Development server launcher
+- `index.html` - Complete user interface with add card, payment methods, and payment processing
+- `payment-methods.php` - Multi-use token creation with customer data integration
+- `PaymentUtils.php` - Core SDK utilities including customer token creation
+- `charge.php` - Payment processing endpoint
+- `JsonStorage.php` - Payment method and customer data storage
+- `config.php` - Frontend SDK configuration
+- `health.php` - System status monitoring
 
 ## Setup
 
@@ -47,41 +48,35 @@ A comprehensive PHP API system for vault-based payment processing using the Glob
    php -S localhost:8000
    ```
 
-## Implementation Details
+## How It Works
 
-### Application Architecture
-The application uses a modular REST API structure:
-- API router with endpoint-based file organization
-- Utility classes for payment processing and data storage
-- Mock mode fallback for testing without API credentials
-- JSON-based data persistence for development
+### 1. Customer Card Entry
+Users enter their billing information and payment details through a secure Global Payments tokenization form. The frontend collects:
+- Customer details (name, email, phone, billing address)
+- Payment card information (handled by Global Payments JS SDK)
 
-### SDK Configuration
-Global Payments SDK integration:
-- Environment-based configuration loading
-- Portico gateway configuration for payment processing  
-- Automatic fallback to mock responses when SDK unavailable
-- Vault token management for secure payment method storage
+### 2. Multi-Use Token Creation
+The system creates vault tokens that include customer data:
+- Payment token from Global Payments is enhanced with customer billing information
+- Address data is attached to the multi-use token for future use
+- Customer information is stored alongside the payment method for easy retrieval
 
-### Data Storage
-JSON-based storage system:
-- Payment methods stored with vault tokens
-- File-based persistence in `data/` directory
-- Validation and error handling for data operations
-- Mock data generation for testing scenarios
+### 3. One-Click Payments
+Saved payment methods enable seamless transactions:
+- Select from saved payment methods with customer context
+- Process immediate charges using stored vault tokens
+- Full payment history with customer and transaction details
 
-### Error Handling
-Comprehensive error management with enhanced live mode support:
-- **Live Mode Errors**: When not in mock mode, actual SDK errors are returned directly to clients with specific error codes (PAYMENT_DECLINED, AUTHORIZATION_DECLINED)
-- **Mock Mode Fallback**: Mock responses only used when explicitly in mock mode or when SDK is unavailable
-- **Structured Responses**: JSON error responses with HTTP status codes and descriptive error messages
-- **Detailed Logging**: Error logging for debugging and monitoring payment processing issues
-- **Field Consistency**: Automatic conversion from snake_case (SDK/internal) to camelCase (frontend) field naming
+### 4. Data Flow
+```
+Frontend Form → Global Payments Tokenization → Multi-Use Token + Customer Data → Vault Storage → One-Click Payments
+```
 
-### Recent Improvements
-- **Enhanced Error Transparency**: `/charge` and `/schedule-payment` endpoints now return actual SDK error messages instead of falling back to mock responses when payment processing fails in live mode
-- **Frontend Compatibility**: Transaction IDs and authorization IDs properly mapped from snake_case internal format to camelCase for frontend display
-- **Robust Payment Processing**: Improved error handling ensures clear communication of payment failures without masking underlying issues
+### Key Implementation
+- **Frontend**: Collects customer data and handles Global Payments tokenization
+- **Backend**: Creates multi-use tokens with `createMultiUseTokenWithCustomer()` method
+- **Storage**: JSON-based persistence including customer information with payment methods
+- **Processing**: Uses stored vault tokens with associated customer data for payments
 
 ## API Endpoints
 
@@ -124,17 +119,29 @@ Response:
 ```
 
 ### POST /payment-methods
-Create and vault a new payment method.
+Create multi-use token with customer data.
 
 Request:
 ```json
 {
-  "cardNumber": "4111111111111111",
-  "expiryMonth": "12",
-  "expiryYear": "2025",
-  "cvv": "123",
-  "nickname": "My Test Card",
-  "isDefault": false
+  "payment_token": "supt_abc123",
+  "cardDetails": {
+    "cardType": "visa",
+    "cardLast4": "4242",
+    "expiryMonth": "12",
+    "expiryYear": "2028"
+  },
+  "first_name": "Jane",
+  "last_name": "Doe",
+  "email": "jane@example.com",
+  "phone": "5551234567",
+  "street_address": "123 Main St",
+  "city": "Anytown",
+  "state": "NY",
+  "billing_zip": "12345",
+  "country": "USA",
+  "nickname": "My Visa Card",
+  "isDefault": true
 }
 ```
 
@@ -144,13 +151,13 @@ Response:
   "success": true,
   "data": {
     "id": "pm_123",
-    "vaultToken": "vault_abc123",
+    "vaultToken": "multi_use_token_xyz",
     "type": "card",
-    "last4": "1111",
-    "brand": "visa",
-    "expiry": "12/25",
-    "nickname": "My Test Card",
-    "isDefault": false,
+    "last4": "4242",
+    "brand": "Visa",
+    "expiry": "12/28",
+    "nickname": "My Visa Card",
+    "isDefault": true,
     "mockMode": false
   }
 }
@@ -186,111 +193,182 @@ Response:
 }
 ```
 
-### POST /schedule-payment
-Create payment authorization for later capture ($50.00).
+## Scheduled Payments Implementation
 
-Request:
-```json
-{
-  "paymentMethodId": "pm_123"
+This sample project focuses on immediate payment processing using vault tokens. For developers who need scheduled payment functionality, the Global Payments SDK's PayPlan feature requires additional setup and architecture that is beyond the scope of this demonstration.
+
+### Alternative Scheduling Approaches
+
+For production applications requiring scheduled payments, consider implementing your own scheduling layer using one of these approaches:
+
+#### 1. Framework-Based Schedulers
+
+**Laravel Queue Jobs & Scheduler**
+```php
+// Schedule recurring payments
+// In your Laravel app
+Schedule::call(function () {
+    ProcessRecurringPayments::dispatch();
+})->daily();
+
+// Queue job to process payments
+class ProcessRecurringPayments implements ShouldQueue {
+    public function handle() {
+        $duePayments = PaymentSchedule::where('next_payment_date', '<=', now())->get();
+        foreach ($duePayments as $payment) {
+            // Use stored vault token to process payment
+            PaymentUtils::processPaymentWithSDK($payment->vault_token, $payment->amount, 'USD');
+        }
+    }
 }
 ```
 
-Response:
-```json
-{
-  "success": true,
-  "data": {
-    "authorization_id": "auth_789",
-    "amount": 50.00,
-    "currency": "USD",
-    "status": "authorized",
-    "payment_method": {
-      "id": "pm_123",
-      "type": "card", 
-      "brand": "visa",
-      "last4": "1111"
-    },
-    "capture_info": {
-      "can_capture": true,
-      "expires_at": "2024-01-08T12:00:00Z"
-    },
-    "mockMode": false
-  }
+#### 2. Server-Level Scheduling
+
+**Cron Jobs**
+```bash
+# Schedule daily payment processing
+0 9 * * * php /path/to/your/app/process-payments.php
+
+# Weekly payment processing
+0 9 * * 1 php /path/to/your/app/weekly-payments.php
+```
+
+**System-level scheduling**
+```php
+// process-payments.php
+<?php
+require_once 'PaymentUtils.php';
+
+$scheduledPayments = getScheduledPaymentsForToday(); // Your implementation
+foreach ($scheduledPayments as $payment) {
+    try {
+        $result = PaymentUtils::processPaymentWithSDK(
+            $payment['vault_token'],
+            $payment['amount'],
+            $payment['currency']
+        );
+        updatePaymentStatus($payment['id'], 'completed', $result);
+    } catch (Exception $e) {
+        updatePaymentStatus($payment['id'], 'failed', ['error' => $e->getMessage()]);
+    }
+}
+?>
+```
+
+#### 3. Queue-Based Systems
+
+**Redis Queue with PHP**
+```php
+// Enqueue payment for future processing
+$redis = new Redis();
+$redis->zadd('scheduled_payments', time() + $delay, json_encode([
+    'vault_token' => $vaultToken,
+    'amount' => $amount,
+    'customer_data' => $customerData
+]));
+
+// Worker process
+while (true) {
+    $payments = $redis->zrangebyscore('scheduled_payments', 0, time(), ['limit' => [0, 10]]);
+    foreach ($payments as $paymentData) {
+        $payment = json_decode($paymentData, true);
+        // Process payment using vault token
+        processScheduledPayment($payment);
+        $redis->zrem('scheduled_payments', $paymentData);
+    }
+    sleep(60); // Check every minute
 }
 ```
+
+#### 4. Cloud-Based Scheduling
+
+**AWS EventBridge**
+```php
+// Schedule payment event
+$eventBridge = new Aws\EventBridge\EventBridgeClient([...]);
+$eventBridge->putEvents([
+    'Entries' => [[
+        'Source' => 'payment.scheduler',
+        'DetailType' => 'Process Payment',
+        'Detail' => json_encode([
+            'vault_token' => $vaultToken,
+            'amount' => $amount,
+            'schedule_date' => '2024-02-01T09:00:00Z'
+        ]),
+        'ScheduleExpression' => 'at(2024-02-01T09:00:00)'
+    ]]
+]);
+```
+
+**Google Cloud Scheduler**
+```bash
+# Create scheduled job
+gcloud scheduler jobs create http payment-processor \
+    --schedule="0 9 * * *" \
+    --uri="https://your-app.com/process-payments" \
+    --http-method=POST \
+    --headers="Content-Type=application/json" \
+    --message-body='{"action":"process_scheduled_payments"}'
+```
+
+### Implementation Considerations
+
+When implementing scheduled payments:
+
+1. **Token Persistence**: Vault tokens remain valid for extended periods, making them suitable for scheduled payments
+2. **Error Handling**: Implement retry logic for failed payments with exponential backoff
+3. **Notification Systems**: Alert customers about upcoming and completed payments
+4. **Compliance**: Consider PCI compliance requirements for storing payment schedules
+5. **Monitoring**: Log all scheduled payment attempts and results for auditing
+
+### Recommended Architecture
+
+```
+Customer Data + Payment Schedule → Database Storage
+                                 ↓
+Scheduler Service (Cron/Queue) → Check Due Payments
+                                 ↓
+Payment Processor → Use Vault Token → Global Payments API
+                                 ↓
+Results Handler → Update Database + Notify Customer
+```
+
+The vault tokens created by this sample application are fully compatible with any of these scheduling approaches, providing a solid foundation for building sophisticated payment scheduling systems.
 
 ## Troubleshooting
 
 ### Common Issues
 
-**PHP Version Issues**:
-- Ensure PHP 8.0 or later is installed
-- Check version with `php --version`
-- Verify required extensions are enabled (curl, json, mbstring)
-- Update PHP from your system package manager or download from https://php.net
-
-**Composer Dependencies**:
+**Setup Issues**:
+- Ensure PHP 7.4+ is installed: `php --version`
 - Run `composer install` to install dependencies
-- Clear composer cache: `composer clear-cache`
-- Update dependencies: `composer update`
-- Check for autoload issues: `composer dump-autoload`
-
-**Web Server Configuration**:
-- Ensure web server (Apache/Nginx) is configured for PHP
-- Verify document root points to project directory
-- Check .htaccess file permissions and mod_rewrite (Apache)
-- Configure proper PHP-FPM settings for production
-
-**API Configuration**:
-- Ensure SECRET_API_KEY is set in .env file
-- Verify API key is for the correct environment (test/production)
-- Check console output for SDK configuration errors
-- Validate .env file format and permissions
+- Set up `.env` file with Global Payments credentials (optional for mock mode)
 
 **Payment Processing**:
-- Use test cards in certification environment
-- Enable mock mode for development testing
-- Check server error logs for detailed error information
-- Verify proper JSON formatting in API requests
-- Ensure proper error handling in payment endpoints
+- Use Global Payments test cards: 4012002000060016 (Visa), 2223000010005780 (MasterCard)
+- Enable mock mode toggle in UI for testing without credentials
+- Check browser console for frontend errors
+- Verify API responses in Network tab
 
-**File System Permissions**:
-- Ensure write permissions for data storage directory
-- Check that JSON storage files can be created and modified
-- Verify proper file paths in storage operations
-- Set appropriate directory permissions (755) and file permissions (644)
+**Configuration**:
+- Ensure `data/` directory has write permissions
+- Verify CORS headers are properly set
+- Check that Global Payments SDK loads correctly
 
-**CORS Issues**:
-- Check browser developer console for CORS errors
-- Verify CORS headers in HTTP responses
-- Ensure proper preflight request handling
-- Configure web server CORS settings if needed
-
-**PHP Error Reporting**:
-- Enable error reporting for development: `error_reporting(E_ALL)`
-- Check PHP error logs for detailed error information
-- Verify proper exception handling in payment processing
-- Use try-catch blocks around SDK operations
-
-### Debug Mode
-Enable detailed error reporting for development:
-```php
-// Add to top of your PHP files for debugging
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
-```
+### Mock Mode Testing
+The application includes comprehensive mock mode for testing without live API credentials:
+- Toggle mock mode in the UI header
+- Test various card scenarios using different test card numbers
+- All functionality works identically in mock mode
 
 ## Security Considerations
 
-This example demonstrates basic implementation. For production use, consider:
-- Implementing additional input validation
-- Adding request rate limiting
-- Including security headers
-- Implementing proper logging
-- Adding payment fraud prevention measures
-- Using HTTPS in production
-- Implementing CSRF protection
-- Configuring proper session handling
-- Setting appropriate PHP security directives
+For production use:
+- Use HTTPS for all communications
+- Implement proper input validation and sanitization
+- Add rate limiting and fraud detection
+- Enable comprehensive logging and monitoring
+- Use environment variables for sensitive configuration
+- Implement CSRF protection for forms
+- Regular security updates for dependencies
