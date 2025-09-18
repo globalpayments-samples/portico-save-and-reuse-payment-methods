@@ -120,9 +120,26 @@ func paymentMethodsHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		// Format methods to match PHP structure
+		formattedMethods := make([]map[string]interface{}, len(methods))
+		for i, method := range methods {
+			formattedMethods[i] = map[string]interface{}{
+				"id":        method.ID,
+				"type":      method.Type,
+				"last4":     method.Last4,
+				"brand":     method.Brand,
+				"expiry":    method.Expiry,
+				"isDefault": method.IsDefault,
+				"nickname":  "",
+			}
+			if method.Nickname != nil {
+				formattedMethods[i]["nickname"] = *method.Nickname
+			}
+		}
+
 		response := APIResponse{
 			Success:   true,
-			Data:      methods,
+			Data:      formattedMethods,
 			Message:   fmt.Sprintf("Retrieved %d payment method(s)", len(methods)),
 			Timestamp: getCurrentTimestamp(),
 		}
@@ -156,8 +173,21 @@ func paymentMethodsHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Validate required fields for new payment method
-		if req.CardNumber == "" || req.ExpiryMonth == "" || req.ExpiryYear == "" || req.CVV == "" {
-			sendErrorResponse(w, http.StatusBadRequest, "Missing required fields: cardNumber, expiryMonth, expiryYear, cvv", "VALIDATION_ERROR")
+		if req.PaymentToken != "" {
+			// New approach: validate payment token and card details
+			if req.CardDetails.CardType == "" || req.CardDetails.CardLast4 == "" ||
+			   req.CardDetails.ExpiryMonth == "" || req.CardDetails.ExpiryYear == "" {
+				sendErrorResponse(w, http.StatusBadRequest, "Missing required cardDetails fields: cardType, cardLast4, expiryMonth, expiryYear", "VALIDATION_ERROR")
+				return
+			}
+		} else if req.CardNumber != "" {
+			// Legacy approach: validate card data
+			if req.ExpiryMonth == "" || req.ExpiryYear == "" || req.CVV == "" {
+				sendErrorResponse(w, http.StatusBadRequest, "Missing required fields: cardNumber, expiryMonth, expiryYear, cvv", "VALIDATION_ERROR")
+				return
+			}
+		} else {
+			sendErrorResponse(w, http.StatusBadRequest, "Missing required payment data: either paymentToken+cardDetails or cardNumber+expiryMonth+expiryYear+cvv", "VALIDATION_ERROR")
 			return
 		}
 
@@ -168,9 +198,26 @@ func paymentMethodsHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		// Format response to match PHP structure
+		responseData := map[string]interface{}{
+			"id":        method.ID,
+			"vaultToken": method.VaultToken,
+			"type":      method.Type,
+			"last4":     method.Last4,
+			"brand":     method.Brand,
+			"expiry":    method.Expiry,
+			"nickname":  "",
+			"isDefault": method.IsDefault,
+			"mockMode":  method.MockMode,
+		}
+
+		if method.Nickname != nil {
+			responseData["nickname"] = *method.Nickname
+		}
+
 		response := APIResponse{
 			Success:   true,
-			Data:      method,
+			Data:      responseData,
 			Message:   "Payment method created successfully",
 			Timestamp: getCurrentTimestamp(),
 		}
@@ -213,36 +260,3 @@ func chargeHandler(w http.ResponseWriter, r *http.Request) {
 	sendJSONResponse(w, http.StatusOK, response)
 }
 
-// Schedule payment endpoint
-func schedulePaymentHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method == "OPTIONS" {
-		return
-	}
-
-	var req PaymentRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		sendErrorResponse(w, http.StatusBadRequest, "Invalid request body", "INVALID_JSON")
-		return
-	}
-
-	if req.PaymentMethodID == "" {
-		sendErrorResponse(w, http.StatusBadRequest, "Missing required field: paymentMethodId", "VALIDATION_ERROR")
-		return
-	}
-
-	// Process authorization
-	result, err := processPayment(req.PaymentMethodID, 50.00, "authorize")
-	if err != nil {
-		sendErrorResponse(w, http.StatusBadRequest, err.Error(), "AUTHORIZATION_FAILED")
-		return
-	}
-
-	response := APIResponse{
-		Success:   true,
-		Data:      result,
-		Message:   "Payment authorization scheduled successfully",
-		Timestamp: getCurrentTimestamp(),
-	}
-
-	sendJSONResponse(w, http.StatusOK, response)
-}

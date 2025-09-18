@@ -56,7 +56,6 @@ func main() {
 	r.HandleFunc("/mock-mode", mockModeHandler).Methods("GET", "POST", "OPTIONS")
 	r.HandleFunc("/payment-methods", paymentMethodsHandler).Methods("GET", "POST", "OPTIONS")
 	r.HandleFunc("/charge", chargeHandler).Methods("POST", "OPTIONS")
-	r.HandleFunc("/schedule-payment", schedulePaymentHandler).Methods("POST", "OPTIONS")
 
 	// Serve static files
 	r.PathPrefix("/").Handler(http.FileServer(http.Dir("./")))
