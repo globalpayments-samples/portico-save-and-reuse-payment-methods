@@ -6,7 +6,8 @@ This example demonstrates a comprehensive vault one-click payment system using J
 
 - **Payment Method Management** - Store, retrieve, and manage customer payment methods securely
 - **Vault Tokenization** - Securely tokenize and store payment methods using Global Payments vault
-- **One-Click Payments** - Process charges and scheduled payments using stored payment methods
+- **Multi-Use Token Creation** - Convert single-use tokens to multi-use vault tokens with customer data
+- **One-Click Payments** - Process charges using stored multi-use payment methods
 - **Mock Mode** - Test payment flows with simulated responses without hitting live APIs
 - **Comprehensive UI** - Complete web interface with payment method management and transaction processing
 - **Test Card Integration** - Built-in Heartland certification test cards for development and testing
@@ -23,7 +24,6 @@ This example demonstrates a comprehensive vault one-click payment system using J
   - `HealthServlet.java` - System health check endpoint
   - `PaymentMethodsServlet.java` - Payment method CRUD operations
   - `ChargeServlet.java` - Payment processing ($25 charges)
-  - `SchedulePaymentServlet.java` - Payment scheduling ($50 authorizations)
   - `MockModeServlet.java` - Mock mode toggle functionality
   - `PaymentUtils.java` - Payment utility functions and SDK integration
   - `JsonStorage.java` - JSON-based storage for payment methods
@@ -40,7 +40,7 @@ Fixed a critical issue where Transaction ID was showing as "undefined" in the fr
 - Returns `transactionId` (camelCase) instead of `transaction_id` (snake_case) in Live Mode responses
 - Maintains consistent field naming between Live Mode and Mock Mode responses
 - Ensures all response fields use camelCase formatting for frontend compatibility
-- Provides proper `authorizationId` field for scheduled payments
+- Provides proper field formatting for consistent API responses
 
 ## Setup
 
@@ -120,9 +120,33 @@ Retrieve all stored payment methods for the customer.
 ```
 
 ### POST /payment-methods
-Create a new payment method or edit an existing one.
+Create multi-use token with customer data or edit an existing payment method.
 
-**Create Request:**
+**Create Multi-Use Token Request:**
+```json
+{
+  "payment_token": "supt_abc123",
+  "cardDetails": {
+    "cardType": "visa",
+    "cardLast4": "4242",
+    "expiryMonth": "12",
+    "expiryYear": "2028"
+  },
+  "first_name": "Jane",
+  "last_name": "Doe",
+  "email": "jane@example.com",
+  "phone": "5551234567",
+  "street_address": "123 Main St",
+  "city": "Anytown",
+  "state": "NY",
+  "billing_zip": "12345",
+  "country": "USA",
+  "nickname": "My Visa Card",
+  "isDefault": true
+}
+```
+
+**Legacy Card Entry Request:**
 ```json
 {
   "cardNumber": "4012002000060016",
@@ -199,41 +223,6 @@ Process a $25.00 charge using a stored payment method.
 }
 ```
 
-### POST /schedule-payment
-Create a $50.00 authorization for scheduled payment.
-
-**Request:**
-```json
-{
-  "paymentMethodId": "pm_123456789"
-}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "authorizationId": "auth_456789012",
-    "transactionId": "637041723",
-    "amount": 50.00,
-    "currency": "USD",
-    "status": "authorized",
-    "expiresAt": "2024-09-15T14:00:00",
-    "responseCode": "00",
-    "responseMessage": "APPROVAL",
-    "gatewayResponse": {
-      "authCode": "31400A",
-      "referenceNumber": "525111680899"
-    },
-    "captureInfo": {
-      "canCapture": true,
-      "expiresAt": "2024-09-15T14:00:00"
-    },
-    "mockMode": false
-  }
-}
-```
 
 ### GET /mock-mode
 Get current mock mode status.
@@ -301,10 +290,11 @@ All test cards use:
 - Handles both live and certification environments
 
 ### Payment Processing
-1. **Tokenization**: Create secure vault tokens for payment methods using SDK
-2. **Storage**: Store payment method metadata in JSON format with thread-safe operations
-3. **Processing**: Use vault tokens for charges and authorizations
-4. **Error Handling**: Comprehensive error handling with meaningful HTTP status codes
+1. **Multi-Use Tokenization**: Convert single-use tokens to multi-use vault tokens with customer data using SDK
+2. **Customer Integration**: Associate customer billing information with payment methods for enhanced context
+3. **Storage**: Store enhanced payment method metadata with customer context in JSON format with thread-safe operations
+4. **Processing**: Use multi-use vault tokens for immediate payment charges
+5. **Error Handling**: Comprehensive error handling with meaningful HTTP status codes
 
 ### Data Storage
 - JSON file-based storage for payment methods using JsonStorage utility
@@ -313,24 +303,83 @@ All test cards use:
 - Easy migration path to database systems
 
 ### Field Naming Consistency
-- **Live Mode**: All response fields use camelCase formatting (transactionId, authorizationId, etc.)
-- **Mock Mode**: Consistent camelCase field naming across all responses
+- **Live Mode**: All response fields use camelCase formatting (transactionId, vaultToken, etc.)
+- **Mock Mode**: Consistent camelCase field naming across all responses including multi-use token fields
 - **Frontend Compatibility**: Ensures seamless integration with JavaScript frontend
-- **API Standards**: Follows modern REST API naming conventions
+- **API Standards**: Follows modern REST API naming conventions for enhanced developer experience
+
+## Multi-Use Token Implementation
+
+The Java implementation creates enhanced vault tokens that combine Global Payments tokenization with customer data management:
+
+### Key Features
+
+- **Enhanced Vault Tokens**: Converts single-use payment tokens into multi-use vault tokens
+- **Customer Data Integration**: Associates customer billing information with payment methods
+- **Thread-Safe Processing**: Concurrent servlet handling for multi-use token creation
+- **Type-Safe Implementation**: Uses strongly-typed Java classes for all token operations
+
+### Token Creation Process
+
+```java
+// CustomerData class for multi-use token creation
+public class CustomerData {
+    private String firstName;
+    private String lastName;
+    private String email;
+    private String phone;
+    private String streetAddress;
+    private String city;
+    private String state;
+    private String billingZip;
+    private String country;
+
+    // getters and setters...
+}
+
+// Create multi-use token with customer data
+public static Customer createMultiUseTokenWithCustomer(
+        String singleUseToken, CustomerData customerData) throws ApiException {
+
+    Customer customer = new Customer();
+    customer.setFirstName(customerData.getFirstName());
+    customer.setLastName(customerData.getLastName());
+    customer.setEmail(customerData.getEmail());
+    customer.setHomePhone(customerData.getPhone());
+
+    Address address = new Address();
+    address.setStreetAddress1(customerData.getStreetAddress());
+    address.setCity(customerData.getCity());
+    address.setState(customerData.getState());
+    address.setPostalCode(customerData.getBillingZip());
+    address.setCountry(customerData.getCountry());
+    customer.setAddress(address);
+
+    // Create vault token with customer context
+    return customer.create();
+}
+```
+
+### Implementation Benefits
+
+- **Thread Safety**: Servlet-based architecture with concurrent request handling
+- **Type Safety**: Compile-time validation with Java's type system
+- **Enterprise Ready**: Built on Jakarta EE standards for scalability
+- **Memory Management**: Efficient JVM memory management for customer data
 
 ## Production Considerations
 
 For production deployment, enhance with:
-- **Database Integration** - Replace JSON storage with JPA/Hibernate and proper database
-- **Authentication** - Add JWT or session-based authentication
-- **Connection Pooling** - Configure database connection pooling
-- **Caching** - Implement caching for frequently accessed data
+- **Database Integration** - Replace JSON storage with JPA/Hibernate and PostgreSQL/MySQL
+- **Authentication** - Add Spring Security or Jakarta Security for robust authentication
+- **Connection Pooling** - Configure HikariCP or c3p0 for database connection pooling
+- **Caching** - Implement Redis or Hazelcast for frequently accessed customer data
 - **Rate Limiting** - Implement servlet filters for API rate limiting
-- **Monitoring** - Add logging with SLF4J and monitoring capabilities
-- **Security** - Implement additional security filters and validation
-- **Container Deployment** - Deploy to production servlet containers (Tomcat, Jetty)
+- **Monitoring** - Add SLF4J with Logback and APM tools like New Relic or AppDynamics
+- **Security** - Implement additional security filters and OWASP compliance
+- **Container Deployment** - Deploy to production servlet containers (Tomcat, Jetty, WildFly)
 - **PCI Compliance** - Follow PCI DSS requirements for payment processing
-- **Testing** - Comprehensive unit and integration tests with JUnit
+- **Testing** - Comprehensive unit and integration tests with JUnit 5 and TestContainers
 
 ## Build and Deployment
 

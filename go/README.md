@@ -6,7 +6,8 @@ This example demonstrates a comprehensive vault one-click payment system using G
 
 - **Payment Method Management** - Store, retrieve, and manage customer payment methods securely
 - **Vault Tokenization** - Securely tokenize and store payment methods using Global Payments vault
-- **One-Click Payments** - Process charges and scheduled payments using stored payment methods
+- **Multi-Use Token Creation** - Convert single-use tokens to multi-use vault tokens with customer data
+- **One-Click Payments** - Process charges using stored multi-use payment methods
 - **Mock Mode** - Test payment flows with simulated responses without hitting live APIs
 - **Comprehensive UI** - Complete web interface with payment method management and transaction processing
 - **Test Card Integration** - Built-in Heartland certification test cards for development and testing
@@ -108,9 +109,33 @@ Retrieve all stored payment methods for the customer.
 ```
 
 ### POST /payment-methods
-Create a new payment method or edit an existing one.
+Create multi-use token with customer data or edit an existing payment method.
 
-**Create Request:**
+**Create Multi-Use Token Request:**
+```json
+{
+  "payment_token": "supt_abc123",
+  "cardDetails": {
+    "cardType": "visa",
+    "cardLast4": "4242",
+    "expiryMonth": "12",
+    "expiryYear": "2028"
+  },
+  "first_name": "Jane",
+  "last_name": "Doe",
+  "email": "jane@example.com",
+  "phone": "5551234567",
+  "street_address": "123 Main St",
+  "city": "Anytown",
+  "state": "NY",
+  "billing_zip": "12345",
+  "country": "USA",
+  "nickname": "My Visa Card",
+  "isDefault": true
+}
+```
+
+**Legacy Card Entry Request:**
 ```json
 {
   "cardNumber": "4012002000060016",
@@ -187,48 +212,6 @@ Process a $25.00 charge using a stored payment method.
 }
 ```
 
-### POST /schedule-payment
-Create a $50.00 authorization for scheduled payment.
-
-**Request:**
-```json
-{
-  "paymentMethodId": "pm_123456789"
-}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "authorizationId": "auth_456789012",
-    "transactionId": "txn_345678901",
-    "amount": 50.00,
-    "currency": "USD",
-    "status": "authorized",
-    "expiresAt": "2024-09-15T14:00:00Z",
-    "responseCode": "00",
-    "responseMessage": "APPROVAL",
-    "gatewayResponse": {
-      "authCode": "654321",
-      "referenceNumber": "ref_345678901"
-    },
-    "captureInfo": {
-      "canCapture": true,
-      "expiresAt": "2024-09-15T14:00:00Z"
-    },
-    "paymentMethod": {
-      "id": "pm_123456789",
-      "type": "card",
-      "brand": "Visa",
-      "last4": "0016",
-      "nickname": "Test Visa Card"
-    },
-    "mockMode": false
-  }
-}
-```
 
 ### GET /mock-mode
 Get current mock mode status.
@@ -305,11 +288,12 @@ All test cards use:
 - Implements proper SDK error handling and response processing
 
 ### Payment Processing
-1. **Tokenization**: Create secure vault tokens for payment methods using Global Payments SDK
-2. **Storage**: Store payment method metadata in JSON format with atomic file operations
-3. **Processing**: Use vault tokens for charges and authorizations
-4. **Error Handling**: Comprehensive error handling with meaningful HTTP status codes
-5. **Logging**: Standard Go logging for development and debugging
+1. **Multi-Use Tokenization**: Convert single-use tokens to multi-use vault tokens with customer data using Global Payments SDK
+2. **Customer Integration**: Associate customer billing information with payment methods for enhanced context
+3. **Storage**: Store enhanced payment method metadata with customer context in JSON format with atomic file operations
+4. **Processing**: Use multi-use vault tokens for immediate payment charges
+5. **Error Handling**: Comprehensive error handling with meaningful HTTP status codes
+6. **Logging**: Standard Go logging for development and debugging
 
 ### Data Storage
 - JSON file-based storage using Go's standard file I/O
@@ -319,25 +303,79 @@ All test cards use:
 - Easy migration path to database systems (PostgreSQL, MySQL, etc.)
 
 ### Type Safety
-- **Strongly Typed**: Go structs for all request/response data
-- **JSON Tags**: Proper JSON field mapping with Go struct tags
-- **Validation**: Input validation and sanitization
-- **Error Types**: Custom error types for different failure scenarios
+- **Strongly Typed**: Go structs for all request/response data including customer information
+- **JSON Tags**: Proper JSON field mapping with Go struct tags for multi-use token fields
+- **Validation**: Input validation and sanitization for both payment and customer data
+- **Error Types**: Custom error types for different failure scenarios including token creation errors
+
+## Multi-Use Token Implementation
+
+The Go implementation creates enhanced vault tokens that combine Global Payments tokenization with customer data management:
+
+### Key Features
+
+- **Enhanced Vault Tokens**: Converts single-use payment tokens into multi-use vault tokens
+- **Customer Data Integration**: Associates customer billing information with payment methods
+- **Concurrent Processing**: Efficient goroutine-based handling for multi-use token creation
+- **Type Safety**: Strongly-typed Go structs for all token operations
+
+### Token Creation Process
+
+```go
+// CustomerData represents the customer information for multi-use tokens
+type CustomerData struct {
+    FirstName     string `json:"first_name"`
+    LastName      string `json:"last_name"`
+    Email         string `json:"email"`
+    Phone         string `json:"phone"`
+    StreetAddress string `json:"street_address"`
+    City          string `json:"city"`
+    State         string `json:"state"`
+    BillingZip    string `json:"billing_zip"`
+    Country       string `json:"country"`
+}
+
+// CreateMultiUseTokenWithCustomer creates vault token with customer data
+func CreateMultiUseTokenWithCustomer(singleUseToken string, customerData CustomerData) (*entities.Customer, error) {
+    customer := entities.NewCustomer()
+    customer.FirstName = customerData.FirstName
+    customer.LastName = customerData.LastName
+    customer.Email = customerData.Email
+    customer.HomePhone = customerData.Phone
+
+    address := entities.NewAddress()
+    address.StreetAddress1 = customerData.StreetAddress
+    address.City = customerData.City
+    address.State = customerData.State
+    address.PostalCode = customerData.BillingZip
+    address.Country = customerData.Country
+    customer.Address = address
+
+    return customer.Create()
+}
+```
+
+### Implementation Benefits
+
+- **Concurrent Processing**: Goroutines enable efficient multi-use token creation
+- **Memory Efficiency**: Go's efficient memory management for customer data
+- **Type Safety**: Compile-time validation prevents runtime errors
+- **Performance**: Fast JSON processing and HTTP handling
 
 ## Production Considerations
 
 For production deployment, enhance with:
-- **Database Integration** - Replace JSON storage with PostgreSQL, MySQL, or other databases
+- **Database Integration** - Replace JSON storage with PostgreSQL, MySQL using database/sql or GORM
 - **Authentication** - Add JWT or session-based authentication middleware
-- **Rate Limiting** - Implement API rate limiting middleware
-- **Monitoring** - Add structured logging and monitoring capabilities
+- **Rate Limiting** - Implement API rate limiting with golang.org/x/time/rate
+- **Monitoring** - Add structured logging with logrus and monitoring with Prometheus
 - **Security** - Implement additional security middleware and validation
 - **TLS/HTTPS** - Configure TLS certificates for production deployment
 - **Load Balancing** - Configure nginx or similar for load balancing
 - **Container Deployment** - Docker containerization for easy deployment
 - **PCI Compliance** - Follow PCI DSS requirements for payment processing
-- **Testing** - Comprehensive unit and integration tests
-- **Graceful Shutdown** - Implement proper server shutdown handling
+- **Testing** - Comprehensive unit and integration tests with testify
+- **Graceful Shutdown** - Implement proper server shutdown handling with context
 
 ## Build and Deployment
 

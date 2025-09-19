@@ -15,6 +15,7 @@ A PHP-based vault payment system that creates multi-use tokens with customer dat
 - **One-Click Payment Flow**: Streamlined process from card entry to payment processing
 - **Mock Mode Support**: Test functionality without live API credentials
 - **Real-Time Processing**: Immediate charges ($25)
+- **Customer Data Storage**: Associates customer billing information with vault tokens
 
 ## Project Structure
 
@@ -56,10 +57,11 @@ Users enter their billing information and payment details through a secure Globa
 - Payment card information (handled by Global Payments JS SDK)
 
 ### 2. Multi-Use Token Creation
-The system creates vault tokens that include customer data:
-- Payment token from Global Payments is enhanced with customer billing information
-- Address data is attached to the multi-use token for future use
-- Customer information is stored alongside the payment method for easy retrieval
+The system creates enhanced vault tokens with integrated customer data:
+- Single-use payment tokens are converted to multi-use vault tokens
+- Customer billing information is associated with each payment method
+- Address and contact data enables enhanced fraud protection and user experience
+- Customer context is maintained for regulatory compliance and support
 
 ### 3. One-Click Payments
 Saved payment methods enable seamless transactions:
@@ -193,148 +195,68 @@ Response:
 }
 ```
 
-## Scheduled Payments Implementation
+## Multi-Use Token Implementation
 
-This sample project focuses on immediate payment processing using vault tokens. For developers who need scheduled payment functionality, the Global Payments SDK's PayPlan feature requires additional setup and architecture that is beyond the scope of this demonstration.
+This system creates multi-use tokens that combine Global Payments vault tokens with customer data, enabling secure one-click payments with enhanced customer context.
 
-### Alternative Scheduling Approaches
+### Key Features
 
-For production applications requiring scheduled payments, consider implementing your own scheduling layer using one of these approaches:
+- **Enhanced Vault Tokens**: Converts single-use payment tokens into multi-use vault tokens
+- **Customer Data Integration**: Associates customer billing information with payment methods
+- **Secure Storage**: Maintains PCI compliance while storing customer context
+- **One-Click Payments**: Enables seamless repeat transactions using stored tokens
 
-#### 1. Framework-Based Schedulers
+### Token Creation Process
 
-**Laravel Queue Jobs & Scheduler**
+1. **Frontend Collection**: Customer enters payment and billing details
+2. **Global Payments Tokenization**: Card data is tokenized by Global Payments JS SDK
+3. **Multi-Use Enhancement**: Backend converts single-use token to multi-use with customer data
+4. **Vault Storage**: Enhanced token with customer context is stored securely
+
+### Customer Data Integration
+
+The system enhances vault tokens with comprehensive customer information:
+
 ```php
-// Schedule recurring payments
-// In your Laravel app
-Schedule::call(function () {
-    ProcessRecurringPayments::dispatch();
-})->daily();
-
-// Queue job to process payments
-class ProcessRecurringPayments implements ShouldQueue {
-    public function handle() {
-        $duePayments = PaymentSchedule::where('next_payment_date', '<=', now())->get();
-        foreach ($duePayments as $payment) {
-            // Use stored vault token to process payment
-            PaymentUtils::processPaymentWithSDK($payment->vault_token, $payment->amount, 'USD');
-        }
-    }
-}
+// Example of multi-use token creation with customer data
+$multiUseToken = PaymentUtils::createMultiUseTokenWithCustomer(
+    $singleUseToken,
+    [
+        'first_name' => 'Jane',
+        'last_name' => 'Doe',
+        'email' => 'jane@example.com',
+        'phone' => '5551234567',
+        'street_address' => '123 Main St',
+        'city' => 'Anytown',
+        'state' => 'NY',
+        'billing_zip' => '12345',
+        'country' => 'USA'
+    ]
+);
 ```
 
-#### 2. Server-Level Scheduling
+### Implementation Benefits
 
-**Cron Jobs**
-```bash
-# Schedule daily payment processing
-0 9 * * * php /path/to/your/app/process-payments.php
+- **Reduced PCI Scope**: Card data never touches your servers
+- **Enhanced UX**: Customers see full context (name, address) with saved cards
+- **Fraud Reduction**: Consistent customer data validation
+- **Regulatory Compliance**: Maintains data protection standards
 
-# Weekly payment processing
-0 9 * * 1 php /path/to/your/app/weekly-payments.php
-```
+### Token Lifecycle
 
-**System-level scheduling**
-```php
-// process-payments.php
-<?php
-require_once 'PaymentUtils.php';
+1. **Creation**: Single-use token + customer data → Multi-use vault token
+2. **Storage**: Token metadata with customer context stored locally
+3. **Usage**: Multi-use token enables repeat payments without re-entry
+4. **Management**: Update customer data or payment preferences
 
-$scheduledPayments = getScheduledPaymentsForToday(); // Your implementation
-foreach ($scheduledPayments as $payment) {
-    try {
-        $result = PaymentUtils::processPaymentWithSDK(
-            $payment['vault_token'],
-            $payment['amount'],
-            $payment['currency']
-        );
-        updatePaymentStatus($payment['id'], 'completed', $result);
-    } catch (Exception $e) {
-        updatePaymentStatus($payment['id'], 'failed', ['error' => $e->getMessage()]);
-    }
-}
-?>
-```
+### Advanced Use Cases
 
-#### 3. Queue-Based Systems
+Multi-use tokens support various payment scenarios:
 
-**Redis Queue with PHP**
-```php
-// Enqueue payment for future processing
-$redis = new Redis();
-$redis->zadd('scheduled_payments', time() + $delay, json_encode([
-    'vault_token' => $vaultToken,
-    'amount' => $amount,
-    'customer_data' => $customerData
-]));
-
-// Worker process
-while (true) {
-    $payments = $redis->zrangebyscore('scheduled_payments', 0, time(), ['limit' => [0, 10]]);
-    foreach ($payments as $paymentData) {
-        $payment = json_decode($paymentData, true);
-        // Process payment using vault token
-        processScheduledPayment($payment);
-        $redis->zrem('scheduled_payments', $paymentData);
-    }
-    sleep(60); // Check every minute
-}
-```
-
-#### 4. Cloud-Based Scheduling
-
-**AWS EventBridge**
-```php
-// Schedule payment event
-$eventBridge = new Aws\EventBridge\EventBridgeClient([...]);
-$eventBridge->putEvents([
-    'Entries' => [[
-        'Source' => 'payment.scheduler',
-        'DetailType' => 'Process Payment',
-        'Detail' => json_encode([
-            'vault_token' => $vaultToken,
-            'amount' => $amount,
-            'schedule_date' => '2024-02-01T09:00:00Z'
-        ]),
-        'ScheduleExpression' => 'at(2024-02-01T09:00:00)'
-    ]]
-]);
-```
-
-**Google Cloud Scheduler**
-```bash
-# Create scheduled job
-gcloud scheduler jobs create http payment-processor \
-    --schedule="0 9 * * *" \
-    --uri="https://your-app.com/process-payments" \
-    --http-method=POST \
-    --headers="Content-Type=application/json" \
-    --message-body='{"action":"process_scheduled_payments"}'
-```
-
-### Implementation Considerations
-
-When implementing scheduled payments:
-
-1. **Token Persistence**: Vault tokens remain valid for extended periods, making them suitable for scheduled payments
-2. **Error Handling**: Implement retry logic for failed payments with exponential backoff
-3. **Notification Systems**: Alert customers about upcoming and completed payments
-4. **Compliance**: Consider PCI compliance requirements for storing payment schedules
-5. **Monitoring**: Log all scheduled payment attempts and results for auditing
-
-### Recommended Architecture
-
-```
-Customer Data + Payment Schedule → Database Storage
-                                 ↓
-Scheduler Service (Cron/Queue) → Check Due Payments
-                                 ↓
-Payment Processor → Use Vault Token → Global Payments API
-                                 ↓
-Results Handler → Update Database + Notify Customer
-```
-
-The vault tokens created by this sample application are fully compatible with any of these scheduling approaches, providing a solid foundation for building sophisticated payment scheduling systems.
+- **Subscription Billing**: Recurring charges with customer context
+- **Express Checkout**: One-click purchases with pre-filled customer data
+- **Customer Management**: Update billing addresses without new tokenization
+- **Fraud Prevention**: Consistent customer validation across transactions
 
 ## Troubleshooting
 

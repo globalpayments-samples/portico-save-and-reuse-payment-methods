@@ -6,7 +6,8 @@ This example demonstrates a comprehensive vault one-click payment system using E
 
 - **Payment Method Management** - Store, retrieve, and manage customer payment methods securely
 - **Vault Tokenization** - Securely tokenize and store payment methods using Global Payments vault
-- **One-Click Payments** - Process charges and scheduled payments using stored payment methods
+- **Multi-Use Token Creation** - Convert single-use tokens to multi-use vault tokens with customer data
+- **One-Click Payments** - Process charges using stored multi-use payment methods
 - **Mock Mode** - Test payment flows with simulated responses without hitting live APIs
 - **Comprehensive UI** - Complete web interface with payment method management and transaction processing
 - **Test Card Integration** - Built-in Heartland certification test cards for development and testing
@@ -106,9 +107,33 @@ Retrieve all stored payment methods for the customer.
 ```
 
 ### POST /payment-methods
-Create a new payment method or edit an existing one.
+Create multi-use token with customer data or edit an existing payment method.
 
-**Create Request:**
+**Create Multi-Use Token Request:**
+```json
+{
+  "payment_token": "supt_abc123",
+  "cardDetails": {
+    "cardType": "visa",
+    "cardLast4": "4242",
+    "expiryMonth": "12",
+    "expiryYear": "2028"
+  },
+  "first_name": "Jane",
+  "last_name": "Doe",
+  "email": "jane@example.com",
+  "phone": "5551234567",
+  "street_address": "123 Main St",
+  "city": "Anytown",
+  "state": "NY",
+  "billing_zip": "12345",
+  "country": "USA",
+  "nickname": "My Visa Card",
+  "isDefault": true
+}
+```
+
+**Legacy Card Entry Request:**
 ```json
 {
   "cardNumber": "4012002000060016",
@@ -185,48 +210,6 @@ Process a $25.00 charge using a stored payment method.
 }
 ```
 
-### POST /schedule-payment
-Create a $50.00 authorization for scheduled payment.
-
-**Request:**
-```json
-{
-  "paymentMethodId": "pm_123456789"
-}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "authorizationId": "auth_456789012",
-    "transactionId": "txn_345678901",
-    "amount": 50.00,
-    "currency": "USD",
-    "status": "authorized",
-    "expiresAt": "2024-09-15T14:00:00.000Z",
-    "responseCode": "00",
-    "responseMessage": "APPROVAL",
-    "gatewayResponse": {
-      "authCode": "654321",
-      "referenceNumber": "ref_345678901"
-    },
-    "captureInfo": {
-      "canCapture": true,
-      "expiresAt": "2024-09-15T14:00:00.000Z"
-    },
-    "paymentMethod": {
-      "id": "pm_123456789",
-      "type": "card",
-      "brand": "Visa",
-      "last4": "0016",
-      "nickname": "Test Visa Card"
-    },
-    "mockMode": false
-  }
-}
-```
 
 ### GET /mock-mode
 Get current mock mode status.
@@ -296,11 +279,12 @@ All test cards use:
 - Implements proper SDK error handling and response processing
 
 ### Payment Processing
-1. **Tokenization**: Create secure vault tokens for payment methods using Global Payments SDK
-2. **Storage**: Store payment method metadata in JSON format with atomic file operations
-3. **Processing**: Use vault tokens for charges and authorizations
-4. **Error Handling**: Comprehensive error handling with meaningful HTTP status codes
-5. **Logging**: Console logging for development and debugging
+1. **Multi-Use Tokenization**: Convert single-use tokens to multi-use vault tokens with customer data using Global Payments SDK
+2. **Customer Integration**: Associate customer billing information with payment methods for enhanced context
+3. **Storage**: Store enhanced payment method metadata with customer context in JSON format with atomic file operations
+4. **Processing**: Use multi-use vault tokens for immediate payment charges
+5. **Error Handling**: Comprehensive error handling with meaningful HTTP status codes
+6. **Logging**: Console logging for development and debugging
 
 ### Data Storage
 - JSON file-based storage using Node.js fs module with atomic operations
@@ -309,24 +293,80 @@ All test cards use:
 - Easy migration path to database systems (MongoDB, PostgreSQL, etc.)
 
 ### Security Features
-- Environment variable configuration management
-- CORS protection for API endpoints
-- Input validation and sanitization
-- Vault tokenization ensures sensitive data never touches your servers
-- Proper error handling without exposing sensitive information
+- Environment variable configuration management for API keys and sensitive data
+- CORS protection for API endpoints including multi-use token creation
+- Input validation and sanitization for both payment and customer data
+- Vault tokenization ensures sensitive payment data never touches your servers
+- Customer data protection with proper validation and secure storage
+- Proper error handling without exposing sensitive payment or customer information
+
+## Multi-Use Token Implementation
+
+The Node.js implementation creates enhanced vault tokens that combine Global Payments tokenization with customer data management:
+
+### Key Features
+
+- **Enhanced Vault Tokens**: Converts single-use payment tokens into multi-use vault tokens
+- **Customer Data Integration**: Associates customer billing information with payment methods
+- **Async Processing**: Non-blocking async/await patterns for efficient multi-use token creation
+- **Dynamic Typing**: Flexible JavaScript objects for customer data with validation
+
+### Token Creation Process
+
+```javascript
+// Customer data structure for multi-use tokens
+const customerData = {
+    first_name: 'Jane',
+    last_name: 'Doe',
+    email: 'jane@example.com',
+    phone: '5551234567',
+    street_address: '123 Main St',
+    city: 'Anytown',
+    state: 'NY',
+    billing_zip: '12345',
+    country: 'USA'
+};
+
+// Create multi-use token with customer data
+async function createMultiUseTokenWithCustomer(singleUseToken, customerData) {
+    const customer = new Customer();
+    customer.firstName = customerData.first_name;
+    customer.lastName = customerData.last_name;
+    customer.email = customerData.email;
+    customer.homePhone = customerData.phone;
+
+    const address = new Address();
+    address.streetAddress1 = customerData.street_address;
+    address.city = customerData.city;
+    address.state = customerData.state;
+    address.postalCode = customerData.billing_zip;
+    address.country = customerData.country;
+    customer.address = address;
+
+    // Create vault token with customer context
+    return await customer.create();
+}
+```
+
+### Implementation Benefits
+
+- **Async/Await**: Modern JavaScript patterns for non-blocking token creation
+- **JSON Native**: Seamless handling of customer data with JavaScript objects
+- **Event-Driven**: Node.js event loop for efficient concurrent processing
+- **Memory Efficient**: V8 engine optimization for customer data management
 
 ## Production Considerations
 
 For production deployment, enhance with:
-- **Database Integration** - Replace JSON storage with MongoDB, PostgreSQL, or other databases
-- **Authentication** - Add JWT or session-based authentication middleware
-- **Rate Limiting** - Implement API rate limiting with express-rate-limit
-- **Monitoring** - Add logging with Winston and monitoring capabilities
-- **Security** - Implement helmet.js for security headers and additional validation
-- **Process Management** - Use PM2 for production process management
-- **Load Balancing** - Configure nginx or similar for load balancing
-- **PCI Compliance** - Follow PCI DSS requirements for payment processing
-- **Testing** - Comprehensive unit and integration tests with Jest or Mocha
+- **Database Integration** - Replace JSON storage with MongoDB, PostgreSQL, or Redis for customer data
+- **Authentication** - Add JWT or session-based authentication with passport.js
+- **Rate Limiting** - Implement API rate limiting with express-rate-limit for token endpoints
+- **Monitoring** - Add structured logging with Winston and APM tools like New Relic
+- **Security** - Implement helmet.js for security headers and customer data validation
+- **Process Management** - Use PM2 with cluster mode for production scaling
+- **Load Balancing** - Configure nginx with sticky sessions for customer data consistency
+- **PCI Compliance** - Follow PCI DSS requirements for payment and customer data processing
+- **Testing** - Comprehensive unit and integration tests with Jest, including customer data scenarios
 - **Environment Management** - Use proper environment configuration for different stages
 
 ## Development

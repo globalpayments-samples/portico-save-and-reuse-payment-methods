@@ -6,7 +6,8 @@ This example demonstrates a comprehensive vault one-click payment system using A
 
 - **Payment Method Management** - Store, retrieve, and manage customer payment methods securely
 - **Vault Tokenization** - Securely tokenize and store payment methods using Global Payments vault
-- **One-Click Payments** - Process charges and scheduled payments using stored payment methods
+- **Multi-Use Token Creation** - Convert single-use tokens to multi-use vault tokens with customer data
+- **One-Click Payments** - Process charges using stored multi-use payment methods
 - **Mock Mode** - Test payment flows with simulated responses without hitting live APIs
 - **Comprehensive UI** - Complete web interface with payment method management and transaction processing
 - **Test Card Integration** - Built-in Heartland certification test cards for development and testing
@@ -114,9 +115,33 @@ Retrieve all stored payment methods for the customer.
 ```
 
 ### POST /payment-methods
-Create a new payment method or edit an existing one.
+Create multi-use token with customer data or edit an existing payment method.
 
-**Create Request:**
+**Create Multi-Use Token Request:**
+```json
+{
+  "payment_token": "supt_abc123",
+  "cardDetails": {
+    "cardType": "visa",
+    "cardLast4": "4242",
+    "expiryMonth": "12",
+    "expiryYear": "2028"
+  },
+  "first_name": "Jane",
+  "last_name": "Doe",
+  "email": "jane@example.com",
+  "phone": "5551234567",
+  "street_address": "123 Main St",
+  "city": "Anytown",
+  "state": "NY",
+  "billing_zip": "12345",
+  "country": "USA",
+  "nickname": "My Visa Card",
+  "isDefault": true
+}
+```
+
+**Legacy Card Entry Request:**
 ```json
 {
   "cardNumber": "4012002000060016",
@@ -192,35 +217,6 @@ Process a $25.00 charge using a stored payment method.
 }
 ```
 
-### POST /schedule-payment
-Create a $50.00 authorization for scheduled payment.
-
-**Request:**
-```json
-{
-  "paymentMethodId": "pm_123456789"
-}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "authorizationId": "auth_456789012",
-    "transactionId": "txn_345678901",
-    "amount": 50.00,
-    "currency": "USD",
-    "status": "authorized",
-    "expiresAt": "2024-09-15T14:00:00Z",
-    "captureInfo": {
-      "canCapture": true,
-      "expiresAt": "2024-09-15T14:00:00Z"
-    },
-    "mockMode": false
-  }
-}
-```
 
 ### GET /mock-mode
 Get current mock mode status.
@@ -277,10 +273,11 @@ All test cards use:
 - Handles both live and certification environments
 
 ### Payment Processing
-1. **Tokenization**: Create secure vault tokens for payment methods
-2. **Storage**: Store payment method metadata in JSON format
-3. **Processing**: Use vault tokens for charges and authorizations
-4. **Error Handling**: Comprehensive error handling with meaningful messages
+1. **Multi-Use Tokenization**: Convert single-use tokens to multi-use vault tokens with customer data
+2. **Customer Integration**: Associate customer billing information with payment methods
+3. **Storage**: Store enhanced payment method metadata with customer context in JSON format
+4. **Processing**: Use multi-use vault tokens for immediate payment charges
+5. **Error Handling**: Comprehensive error handling with meaningful messages and type safety
 
 ### Data Storage
 - JSON file-based storage for payment methods
@@ -294,17 +291,65 @@ All test cards use:
 - CORS protection for API endpoints
 - Input validation and sanitization
 
+## Multi-Use Token Implementation
+
+The .NET implementation creates enhanced vault tokens that combine Global Payments tokenization with customer data management:
+
+### Key Features
+
+- **Enhanced Vault Tokens**: Converts single-use payment tokens into multi-use vault tokens
+- **Customer Data Integration**: Associates customer billing information with payment methods
+- **Dual Token Support**: Handles both new multi-use tokens and legacy vault tokens
+- **Type-Safe Implementation**: Uses strongly-typed C# models for all token operations
+
+### Token Creation Process
+
+```csharp
+// Multi-use token creation with customer data
+public static Customer CreateMultiUseTokenWithCustomer(
+    string singleUseToken,
+    CustomerData customerData)
+{
+    var customer = new Customer
+    {
+        FirstName = customerData.FirstName,
+        LastName = customerData.LastName,
+        Email = customerData.Email,
+        HomePhone = customerData.Phone
+    };
+
+    customer.Address = new Address
+    {
+        StreetAddress1 = customerData.StreetAddress,
+        City = customerData.City,
+        State = customerData.State,
+        PostalCode = customerData.BillingZip,
+        Country = customerData.Country
+    };
+
+    // Create vault token with customer context
+    return customer.Create();
+}
+```
+
+### Implementation Benefits
+
+- **Type Safety**: Strongly-typed models prevent runtime errors
+- **Customer Context**: Enhanced user experience with stored customer data
+- **PCI Compliance**: Card data never touches your servers
+- **Future-Proof**: Supports both current and legacy token formats
+
 ## Production Considerations
 
 For production deployment, enhance with:
-- **Database Integration** - Replace JSON storage with proper database
-- **Authentication** - Add user authentication and authorization
-- **Rate Limiting** - Implement API rate limiting
-- **Monitoring** - Add logging, metrics, and monitoring
+- **Database Integration** - Replace JSON storage with Entity Framework and SQL Server
+- **Authentication** - Add ASP.NET Core Identity for user authentication
+- **Rate Limiting** - Implement API rate limiting middleware
+- **Monitoring** - Add Application Insights and structured logging
 - **Security** - Implement additional security headers and validation
-- **PCI Compliance** - Follow PCI DSS requirements
-- **Error Handling** - Enhanced error handling and user notifications
-- **Testing** - Comprehensive unit and integration tests
+- **PCI Compliance** - Follow PCI DSS requirements for payment processing
+- **Error Handling** - Enhanced error handling with proper exception filters
+- **Testing** - Comprehensive unit and integration tests with xUnit
 
 ## Troubleshooting
 
