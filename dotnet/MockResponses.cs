@@ -62,32 +62,6 @@ public static class MockResponses
         };
     }
 
-    /// <summary>
-    /// Get successful authorization response
-    /// </summary>
-    public static AuthorizationResponse GetAuthorizationResponse(decimal amount, string paymentMethodId)
-    {
-        var random = new Random();
-        var expiresAt = DateTime.UtcNow.AddDays(7);
-        
-        return new AuthorizationResponse
-        {
-            AuthorizationId = $"auth_{DateTimeOffset.UtcNow.ToUnixTimeSeconds()}_{Guid.NewGuid().ToString()[^9..]}",
-            TransactionId = $"txn_{DateTimeOffset.UtcNow.ToUnixTimeSeconds()}_{Guid.NewGuid().ToString()[^9..]}",
-            Amount = amount,
-            Currency = "USD",
-            Status = "authorized",
-            ResponseCode = "00",
-            ResponseMessage = "Authorized",
-            Timestamp = DateTime.UtcNow,
-            ExpiresAt = expiresAt,
-            GatewayResponse = new GatewayResponse
-            {
-                AuthCode = $"A{random.Next(10000, 99999):D5}",
-                ReferenceNumber = $"REF{random.Next(100000000, 999999999):D10}"
-            }
-        };
-    }
 
     /// <summary>
     /// Get decline response with specific reason

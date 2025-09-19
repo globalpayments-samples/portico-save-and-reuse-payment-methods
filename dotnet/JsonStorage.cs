@@ -90,6 +90,7 @@ public static class JsonStorage
             ExpiryYear = data.ExpiryYear,
             Nickname = data.Nickname,
             IsDefault = data.IsDefault,
+            CustomerData = data.CustomerData,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };

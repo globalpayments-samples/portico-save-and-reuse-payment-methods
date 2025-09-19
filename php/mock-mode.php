@@ -88,8 +88,6 @@ if (basename($_SERVER['SCRIPT_NAME']) === 'mock-mode.php' || $_SERVER['REQUEST_U
         // Get mock mode status
         $isEnabled = MockModeConfig::isMockModeEnabled();
         
-        error_log('📊 MOCK MODE STATUS - Current state: ' . MockModeConfig::getMockModeStatus());
-        
         $mockModeConfig = [
             'isEnabled' => $isEnabled
         ];
@@ -112,18 +110,11 @@ if (basename($_SERVER['SCRIPT_NAME']) === 'mock-mode.php' || $_SERVER['REQUEST_U
         }
         
         $isEnabled = $data['isEnabled'];
-        $previousState = MockModeConfig::isMockModeEnabled();
         
         if (!MockModeConfig::setMockModeEnabled($isEnabled)) {
             PaymentUtils::sendErrorResponse(500, 'Failed to update mock mode configuration', 'CONFIG_ERROR');
         }
         
-        $previousStateText = $previousState ? '🟡 ENABLED' : '🟢 DISABLED';
-        $newStateText = MockModeConfig::getMockModeStatus();
-        
-        error_log("⚙️  MOCK MODE TOGGLE - Changed from {$previousStateText} to {$newStateText}");
-        error_log('   ⏰ Timestamp: ' . date('c'));
-        error_log('   🎛️  New State: ' . MockModeConfig::getMockModeDescription());
         
         $mockModeConfig = [
             'isEnabled' => $isEnabled

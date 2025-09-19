@@ -75,28 +75,6 @@ class MockResponses
         ];
     }
 
-    /**
-     * Generate mock authorization response
-     */
-    public static function getAuthorizationResponse(float $amount, string $paymentMethodId): array
-    {
-        return [
-            'authorization_id' => 'auth_' . uniqid(),
-            'transaction_id' => 'txn_' . uniqid(),
-            'amount' => $amount,
-            'currency' => 'USD',
-            'status' => 'authorized',
-            'response_code' => '00',
-            'response_message' => 'Authorized',
-            'timestamp' => date('c'),
-            'expires_at' => date('c', strtotime('+7 days')),
-            'payment_method_id' => $paymentMethodId,
-            'gateway_response' => [
-                'auth_code' => strtoupper(bin2hex(random_bytes(3))),
-                'reference_number' => 'ref_' . uniqid()
-            ]
-        ];
-    }
 
 
     /**

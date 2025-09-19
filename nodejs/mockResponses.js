@@ -50,29 +50,6 @@ export const getPaymentResponse = (amount, paymentMethodId) => {
     };
 };
 
-/**
- * Get successful authorization response
- */
-export const getAuthorizationResponse = (amount, paymentMethodId) => {
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7);
-    
-    return {
-        authorizationId: `auth_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        transactionId: `txn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        amount: amount,
-        currency: 'USD',
-        status: 'authorized',
-        responseCode: '00',
-        responseMessage: 'Authorized',
-        timestamp: new Date().toISOString(),
-        expiresAt: expiresAt.toISOString(),
-        gatewayResponse: {
-            authCode: `A${Math.floor(Math.random() * 100000).toString().padStart(5, '0')}`,
-            referenceNumber: `REF${Math.floor(Math.random() * 1000000000).toString().padStart(10, '0')}`
-        }
-    };
-};
 
 /**
  * Get decline response with specific reason
@@ -105,4 +82,35 @@ export const getDeclineResponse = (reason) => {
  */
 export const generateMockVaultToken = () => {
     return `token_${Date.now()}_${Math.random().toString(36).substr(2, 16)}`;
+};
+
+/**
+ * Get card details from mock vault token
+ */
+export const getCardDetailsFromToken = (vaultToken) => {
+    // Extract mock data from token pattern or use defaults for demo
+    const mockDetails = {
+        brand: 'Visa',
+        last4: '0016',
+        expiryMonth: '12',
+        expiryYear: '28'
+    };
+
+    // If token contains identifiable patterns, use them
+    const tokenLower = vaultToken.toLowerCase();
+    if (tokenLower.includes('visa')) {
+        mockDetails.brand = 'Visa';
+        mockDetails.last4 = '0016';
+    } else if (tokenLower.includes('mastercard') || tokenLower.includes('mc')) {
+        mockDetails.brand = 'Mastercard';
+        mockDetails.last4 = '5780';
+    } else if (tokenLower.includes('amex')) {
+        mockDetails.brand = 'American Express';
+        mockDetails.last4 = '1018';
+    } else if (tokenLower.includes('discover')) {
+        mockDetails.brand = 'Discover';
+        mockDetails.last4 = '6527';
+    }
+
+    return mockDetails;
 };
