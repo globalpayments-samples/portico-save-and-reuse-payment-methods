@@ -7,7 +7,7 @@ declare(strict_types=1);
  * 
  * GET /payment-methods - Retrieve saved payment methods
  * POST /payment-methods - Create new payment method (vault token) OR edit existing payment method
- *                         - Create: Requires cardNumber, expiryMonth, expiryYear, cvv (+ optional nickname, isDefault)
+ *                         - Create: Requires vaultToken (+ optional nickname, isDefault)
  *                         - Edit: Requires id (+ optional nickname, isDefault) - only nickname and default status can be edited
  */
 
@@ -93,65 +93,83 @@ try {
             PaymentUtils::sendSuccessResponse($response, 'Payment method updated successfully');
             
         } else {
-            // Create a new payment method
-            if (empty($data['cardNumber']) || empty($data['expiryMonth']) || 
-                empty($data['expiryYear']) || empty($data['cvv'])) {
-                PaymentUtils::sendErrorResponse(400, 'Missing required card details', 'VALIDATION_ERROR');
+            // Create a new payment method using payment_token from GP PaymentForm
+            if (empty($data['payment_token'])) {
+                PaymentUtils::sendErrorResponse(400, 'Missing required payment_token', 'VALIDATION_ERROR');
+            }
+
+            if (empty($data['cardDetails'])) {
+                PaymentUtils::sendErrorResponse(400, 'Missing required cardDetails', 'VALIDATION_ERROR');
             }
 
             $paymentMethodId = JsonStorage::generateId();
-            $cardNumber = $data['cardNumber'];
-            $expiryMonth = str_pad($data['expiryMonth'], 2, '0', STR_PAD_LEFT);
-            $expiryYear = substr($data['expiryYear'], -2);
-            $cvv = $data['cvv'];
-            $last4 = substr($cardNumber, -4);
-            $cardBrand = PaymentUtils::determineCardBrand($cardNumber);
-            
-            $validationData = [
-                'cardBrand' => $cardBrand,
-                'last4' => $last4,
-                'expiryMonth' => $expiryMonth,
-                'expiryYear' => $expiryYear
+            $paymentToken = $data['payment_token'];
+            $cardDetails = $data['cardDetails'];
+            $mockMode = MockModeConfig::isMockModeEnabled();
+
+            // Extract customer data from request
+            $customerData = [
+                'first_name' => $data['first_name'] ?? '',
+                'last_name' => $data['last_name'] ?? '',
+                'email' => $data['email'] ?? '',
+                'phone' => $data['phone'] ?? '',
+                'street_address' => $data['street_address'] ?? '',
+                'city' => $data['city'] ?? '',
+                'state' => $data['state'] ?? '',
+                'billing_zip' => $data['billing_zip'] ?? '',
+                'country' => $data['country'] ?? ''
             ];
-            
+
+            // Create multi-use token with customer data or use mock
+            $multiUseTokenData = null;
+            $finalToken = $paymentToken;
+
+            if (!$mockMode && !empty($_ENV['SECRET_API_KEY'])) {
+                try {
+                    $multiUseTokenData = PaymentUtils::createMultiUseTokenWithCustomer($paymentToken, $customerData, $cardDetails);
+                    $finalToken = $multiUseTokenData['multiUseToken'];
+                } catch (\Exception $e) {
+                    error_log('Multi-use token creation error: ' . $e->getMessage());
+                    // Fall back to mock mode if token creation fails
+                    $mockMode = true;
+                }
+            }
+
+            // Use mock data in mock mode or if token creation failed
+            if ($mockMode || !$multiUseTokenData) {
+                $brand = PaymentUtils::determineCardBrandFromType($cardDetails['cardType'] ?? '');
+                $multiUseTokenData = [
+                    'multiUseToken' => $paymentToken,
+                    'brand' => $brand,
+                    'last4' => $cardDetails['cardLast4'] ?? '',
+                    'expiryMonth' => $cardDetails['expiryMonth'] ?? '',
+                    'expiryYear' => $cardDetails['expiryYear'] ?? '',
+                    'customerData' => $customerData
+                ];
+            }
+
+            $validationData = [
+                'cardBrand' => $multiUseTokenData['brand'],
+                'last4' => $multiUseTokenData['last4'],
+                'expiryMonth' => $multiUseTokenData['expiryMonth'],
+                'expiryYear' => $multiUseTokenData['expiryYear']
+            ];
+
             $validationErrors = JsonStorage::validatePaymentMethod($validationData);
             if (!empty($validationErrors)) {
                 PaymentUtils::sendErrorResponse(400, implode(', ', $validationErrors), 'VALIDATION_ERROR');
             }
 
-            $vaultToken = null;
-            $mockMode = MockModeConfig::isMockModeEnabled();
-
-            if (!$mockMode && !empty($_ENV['SECRET_API_KEY'])) {
-                try {
-                    $vaultToken = PaymentUtils::createVaultTokenWithSDK($data);
-                } catch (\Exception $e) {
-                    error_log('Global Payments SDK error: ' . $e->getMessage());
-                    $mockMode = true;
-                }
-            } else {
-                $mockMode = true;
-            }
-
-            if ($mockMode || !$vaultToken) {
-                $mockResponse = MockResponses::getVaultToken([
-                    'brand' => $cardBrand,
-                    'last4' => $last4,
-                    'exp_month' => $expiryMonth,
-                    'exp_year' => $expiryYear
-                ]);
-                $vaultToken = $mockResponse['id'];
-            }
-
             $paymentMethod = [
                 'id' => $paymentMethodId,
-                'vaultToken' => $vaultToken,
-                'cardBrand' => $cardBrand,
-                'last4' => $last4,
-                'expiryMonth' => $expiryMonth,
-                'expiryYear' => $expiryYear,
-                'nickname' => $data['nickname'] ?? ($cardBrand . ' ending in ' . $last4),
-                'isDefault' => $data['isDefault'] ?? false
+                'vaultToken' => $finalToken,
+                'cardBrand' => $multiUseTokenData['brand'],
+                'last4' => $multiUseTokenData['last4'],
+                'expiryMonth' => $multiUseTokenData['expiryMonth'],
+                'expiryYear' => $multiUseTokenData['expiryYear'],
+                'nickname' => $data['nickname'] ?? ($multiUseTokenData['brand'] . ' ending in ' . $multiUseTokenData['last4']),
+                'isDefault' => $data['isDefault'] ?? false,
+                'customerData' => $customerData
             ];
 
             if (!JsonStorage::addPaymentMethod($paymentMethod)) {
@@ -160,11 +178,11 @@ try {
 
             $response = [
                 'id' => $paymentMethodId,
-                'vaultToken' => $vaultToken,
+                'vaultToken' => $finalToken,
                 'type' => 'card',
-                'last4' => $last4,
-                'brand' => $cardBrand,
-                'expiry' => $expiryMonth . '/' . $expiryYear,
+                'last4' => $multiUseTokenData['last4'],
+                'brand' => $multiUseTokenData['brand'],
+                'expiry' => $multiUseTokenData['expiryMonth'] . '/' . $multiUseTokenData['expiryYear'],
                 'nickname' => $paymentMethod['nickname'],
                 'isDefault' => $paymentMethod['isDefault'],
                 'mockMode' => $mockMode

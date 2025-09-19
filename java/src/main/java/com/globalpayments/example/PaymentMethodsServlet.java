@@ -21,7 +21,7 @@ import java.util.stream.Collectors;
  * 
  * GET /payment-methods - Retrieve saved payment methods
  * POST /payment-methods - Create new payment method (vault token) OR edit existing payment method
- *                         - Create: Requires cardNumber, expiryMonth, expiryYear, cvv (+ optional nickname, isDefault)
+ *                         - Create: Requires vaultToken (+ optional nickname, isDefault)
  *                         - Edit: Requires id (+ optional nickname, isDefault) - only nickname and default status can be edited
  */
 @WebServlet(name = "PaymentMethodsServlet", urlPatterns = {"/payment-methods"})
@@ -79,84 +79,120 @@ public class PaymentMethodsServlet extends HttpServlet {
                 return;
             }
             
-            // Validate required fields for new payment method
-            if (data == null || 
-                isEmpty((String) data.get("cardNumber")) ||
-                isEmpty((String) data.get("expiryMonth")) ||
-                isEmpty((String) data.get("expiryYear")) ||
-                isEmpty((String) data.get("cvv"))) {
-                sendErrorResponse(response, 400, "Missing required fields", "VALIDATION_ERROR");
+            // Check if this is a multi-use token creation with customer data
+            String paymentToken = (String) data.get("paymentToken");
+            String vaultToken = (String) data.get("vaultToken");
+
+            // Validate required fields - either paymentToken + customerData for multi-use, or vaultToken for existing
+            if (paymentToken == null && vaultToken == null) {
+                sendErrorResponse(response, 400, "Missing required payment token or vault token", "VALIDATION_ERROR");
                 return;
             }
-            
-            String cardNumber = (String) data.get("cardNumber");
-            String expiryMonth = (String) data.get("expiryMonth");
-            String expiryYear = (String) data.get("expiryYear");
-            String cvv = (String) data.get("cvv");
+
             String nickname = (String) data.get("nickname");
             Boolean isDefault = (Boolean) data.get("isDefault");
             
-            // Validate card number format
-            String cleanCardNumber = cardNumber.replaceAll("\\s+", "");
-            if (cleanCardNumber.length() < 13 || cleanCardNumber.length() > 19 || !cleanCardNumber.matches("\\d+")) {
-                sendErrorResponse(response, 400, "Invalid card number format", "VALIDATION_ERROR");
-                return;
-            }
-            
-            // Validate expiry
-            try {
-                int month = Integer.parseInt(expiryMonth);
-                int year = Integer.parseInt(expiryYear);
-                if (month < 1 || month > 12) {
-                    sendErrorResponse(response, 400, "Invalid expiry month", "VALIDATION_ERROR");
-                    return;
-                }
-                if (year < LocalDateTime.now().getYear()) {
-                    sendErrorResponse(response, 400, "Card has expired", "VALIDATION_ERROR");
-                    return;
-                }
-            } catch (NumberFormatException e) {
-                sendErrorResponse(response, 400, "Invalid expiry format", "VALIDATION_ERROR");
-                return;
-            }
-            
-            // Determine card brand and last 4 digits
-            String cardBrand = PaymentUtils.determineCardBrand(cleanCardNumber);
-            String last4 = cleanCardNumber.substring(cleanCardNumber.length() - 4);
-            
-            String vaultToken = null;
             boolean mockMode = false;
-            
-            // Check if mock mode is enabled globally
-            if (MockModeServlet.isMockModeEnabled()) {
-                mockMode = true;
-                vaultToken = MockResponses.generateMockVaultToken();
-                System.out.println("🟡 MOCK MODE - Using mock tokenization for card ending in " + last4);
-            } else {
-                // Try to create vault token with SDK in live mode only
-                String secretApiKey = dotenv.get("SECRET_API_KEY");
-                if (secretApiKey != null && !secretApiKey.trim().isEmpty()) {
-                    try {
-                        vaultToken = PaymentUtils.createVaultTokenWithSDK(data);
-                    } catch (Exception e) {
-                        System.err.println("❌ LIVE MODE - SDK tokenization failed: " + e.getMessage());
-                        sendErrorResponse(response, 422, "Payment method creation failed: " + e.getMessage(), "PAYMENT_ERROR");
+            Map<String, String> cardDetails = null;
+            String finalToken = vaultToken;
+
+            // Handle multi-use token creation with customer data
+            if (paymentToken != null) {
+                @SuppressWarnings("unchecked")
+                Map<String, String> customerDataMap = (Map<String, String>) data.get("customerData");
+                @SuppressWarnings("unchecked")
+                Map<String, String> cardDetailsMap = (Map<String, String>) data.get("cardDetails");
+
+                if (customerDataMap == null || cardDetailsMap == null) {
+                    sendErrorResponse(response, 400, "Customer data and card details required for multi-use token creation", "VALIDATION_ERROR");
+                    return;
+                }
+
+                PaymentUtils.CustomerData customerData = new PaymentUtils.CustomerData(customerDataMap);
+                PaymentUtils.CardDetails cardDetailObj = new PaymentUtils.CardDetails(cardDetailsMap);
+
+                // Create multi-use token with customer data or use mock
+                if (MockModeServlet.isMockModeEnabled()) {
+                    mockMode = true;
+                    cardDetails = MockResponses.getCardDetailsFromToken(paymentToken);
+                    finalToken = paymentToken; // In mock mode, use original token
+                    System.out.println("🟡 MOCK MODE - Using payment token " + paymentToken.substring(0, Math.min(12, paymentToken.length())) + "... as final token");
+                } else {
+                    String secretApiKey = dotenv.get("SECRET_API_KEY");
+                    if (secretApiKey != null && !secretApiKey.trim().isEmpty()) {
+                        try {
+                            PaymentUtils.MultiUseTokenResult multiUseResult = PaymentUtils.createMultiUseTokenWithCustomer(paymentToken, customerData, cardDetailObj);
+                            finalToken = multiUseResult.multiUseToken;
+
+                            // Create cardDetails map from result
+                            cardDetails = new HashMap<>();
+                            cardDetails.put("brand", multiUseResult.brand);
+                            cardDetails.put("last4", multiUseResult.last4);
+                            cardDetails.put("expiryMonth", multiUseResult.expiryMonth);
+                            cardDetails.put("expiryYear", multiUseResult.expiryYear);
+                            cardDetails.put("token", finalToken);
+
+                            System.out.println("🟢 LIVE MODE - Created multi-use token for " + cardDetails.get("brand") + " ending in " + cardDetails.get("last4"));
+                        } catch (Exception e) {
+                            System.err.println("❌ LIVE MODE - Multi-use token creation failed: " + e.getMessage());
+                            // Fall back to mock mode
+                            mockMode = true;
+                            cardDetails = MockResponses.getCardDetailsFromToken(paymentToken);
+                            finalToken = paymentToken;
+                            System.out.println("🟡 Fallback to mock mode: Using payment token as final token");
+                        }
+                    } else {
+                        System.err.println("❌ LIVE MODE - No SECRET_API_KEY configured");
+                        sendErrorResponse(response, 503, "Payment service not configured", "CONFIGURATION_ERROR");
                         return;
                     }
+                }
+            } else {
+                // Handle existing vault token (legacy flow)
+                finalToken = vaultToken;
+
+                // Check if mock mode is enabled globally
+                if (MockModeServlet.isMockModeEnabled()) {
+                    mockMode = true;
+                    cardDetails = MockResponses.getCardDetailsFromToken(vaultToken);
+                    System.out.println("🟡 MOCK MODE - Retrieved mock card details for token " + vaultToken.substring(0, Math.min(12, vaultToken.length())) + "...");
                 } else {
-                    System.err.println("❌ LIVE MODE - No SECRET_API_KEY configured");
-                    sendErrorResponse(response, 503, "Payment service not configured", "CONFIGURATION_ERROR");
-                    return;
+                    // Try to get card details from real vault token
+                    String secretApiKey = dotenv.get("SECRET_API_KEY");
+                    if (secretApiKey != null && !secretApiKey.trim().isEmpty()) {
+                        try {
+                            cardDetails = PaymentUtils.getCardDetailsFromToken(vaultToken);
+                            System.out.println("🟢 LIVE MODE - Retrieved card details for " + cardDetails.get("brand") + " ending in " + cardDetails.get("last4"));
+                        } catch (Exception e) {
+                            System.err.println("❌ LIVE MODE - Token lookup failed: " + e.getMessage());
+                            // Fall back to mock mode
+                            mockMode = true;
+                            cardDetails = MockResponses.getCardDetailsFromToken(vaultToken);
+                            System.out.println("🟡 Fallback to mock mode: Using mock card details");
+                        }
+                    } else {
+                        System.err.println("❌ LIVE MODE - No SECRET_API_KEY configured");
+                        sendErrorResponse(response, 503, "Payment service not configured", "CONFIGURATION_ERROR");
+                        return;
+                    }
                 }
             }
             
-            // Create payment method data
+            // Validate card details
+            if (cardDetails == null || isEmpty(cardDetails.get("brand")) || isEmpty(cardDetails.get("last4"))) {
+                sendErrorResponse(response, 400, "Invalid token or unable to retrieve card details", "VALIDATION_ERROR");
+                return;
+            }
+            
+            // Create payment method data using card details from token
+            String expiry = cardDetails.get("expiryMonth") + "/" + cardDetails.get("expiryYear");
+
             Map<String, Object> paymentMethodData = new HashMap<>();
-            paymentMethodData.put("vaultToken", vaultToken);
-            paymentMethodData.put("cardBrand", cardBrand);
-            paymentMethodData.put("last4", last4);
-            paymentMethodData.put("expiry", String.format("%02d/%s", Integer.parseInt(expiryMonth), expiryYear));
-            paymentMethodData.put("nickname", nickname);
+            paymentMethodData.put("vaultToken", finalToken);
+            paymentMethodData.put("cardBrand", cardDetails.get("brand"));
+            paymentMethodData.put("last4", cardDetails.get("last4"));
+            paymentMethodData.put("expiry", expiry);
+            paymentMethodData.put("nickname", nickname != null ? nickname : cardDetails.get("brand") + " ending in " + cardDetails.get("last4"));
             paymentMethodData.put("isDefault", isDefault != null ? isDefault : false);
             paymentMethodData.put("mockMode", mockMode);
             

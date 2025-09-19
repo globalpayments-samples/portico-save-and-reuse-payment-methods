@@ -128,7 +128,6 @@ app.post('/mock-mode', async (req, res) => {
             });
         }
 
-        const previousState = mockModeEnabled;
         mockModeEnabled = isEnabled;
         
         // Persist mock mode configuration
@@ -138,7 +137,7 @@ app.post('/mock-mode', async (req, res) => {
             console.log('Warning: Failed to save mock mode config:', error.message);
         }
 
-        console.log(`🎭 Mock mode toggled from ${previousState} to ${mockModeEnabled}`);
+        console.log(`🎭 Mock mode is now ${mockModeEnabled}`);
         
         res.json({
             success: true,
@@ -189,11 +188,15 @@ app.post('/payment-methods', async (req, res) => {
             return await handleEditPaymentMethod(req, res, data);
         }
 
-        // Validate required fields for new payment method
-        if (!data.cardNumber || !data.expiryMonth || !data.expiryYear || !data.cvv) {
+        // Check if this is a multi-use token creation with customer data
+        const paymentToken = data.paymentToken;
+        const vaultToken = data.vaultToken;
+
+        // Validate required fields - either paymentToken + customerData for multi-use, or vaultToken for existing
+        if (!paymentToken && !vaultToken) {
             return res.status(400).json({
                 success: false,
-                message: 'Missing required card details',
+                message: 'Missing required payment token or vault token',
                 errorCode: 'VALIDATION_ERROR',
                 timestamp: new Date().toISOString()
             });
@@ -277,54 +280,105 @@ async function handleEditPaymentMethod(req, res, data) {
     }
 }
 
-// Handle creating a new payment method
+// Handle creating a new payment method using token from frontend
 async function handleCreatePaymentMethod(req, res, data) {
     try {
-        // Validate card data
-        const cleanCardNumber = data.cardNumber.replace(/\s+/g, '');
-        if (cleanCardNumber.length < 13 || cleanCardNumber.length > 19 || !/^\d+$/.test(cleanCardNumber)) {
+        const paymentToken = data.paymentToken;
+        const vaultToken = data.vaultToken;
+        let isUsingMockMode = mockModeEnabled;
+        let cardDetails;
+        let finalToken = vaultToken;
+
+        // Handle multi-use token creation with customer data
+        if (paymentToken) {
+            const customerData = data.customerData;
+            const cardDetailsData = data.cardDetails;
+
+            if (!customerData || !cardDetailsData) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Customer data and card details required for multi-use token creation',
+                    errorCode: 'VALIDATION_ERROR',
+                    timestamp: new Date().toISOString()
+                });
+            }
+
+            // Create multi-use token with customer data or use mock
+            if (mockModeEnabled) {
+                cardDetails = mockResponses.getCardDetailsFromToken(paymentToken);
+                finalToken = paymentToken; // In mock mode, use original token
+                console.log(`🟡 Mock mode: Using payment token ${paymentToken.substring(0, 12)}... as final token`);
+            } else {
+                try {
+                    const multiUseResult = await paymentUtils.createMultiUseTokenWithCustomer(paymentToken, customerData, cardDetailsData);
+                    finalToken = multiUseResult.multiUseToken;
+
+                    // Create cardDetails object from result
+                    cardDetails = {
+                        brand: multiUseResult.brand,
+                        last4: multiUseResult.last4,
+                        expiryMonth: multiUseResult.expiryMonth,
+                        expiryYear: multiUseResult.expiryYear,
+                        token: finalToken
+                    };
+
+                    console.log(`🟢 Live mode: Created multi-use token for ${cardDetails.brand} ending in ${cardDetails.last4}`);
+                } catch (error) {
+                    console.log(`❌ Live mode multi-use token creation failed: ${error.message}`);
+                    // Fall back to mock mode
+                    isUsingMockMode = true;
+                    cardDetails = mockResponses.getCardDetailsFromToken(paymentToken);
+                    finalToken = paymentToken;
+                    console.log(`🟡 Fallback to mock mode: Using payment token as final token`);
+                }
+            }
+        } else {
+            // Handle existing vault token (legacy flow)
+            finalToken = vaultToken;
+
+            if (mockModeEnabled) {
+                // Use mock card details
+                cardDetails = mockResponses.getCardDetailsFromToken(vaultToken);
+                console.log(`🟡 Mock mode: Retrieved mock card details for token ${vaultToken.substring(0, 12)}...`);
+            } else {
+                try {
+                    // Try to get card details from real vault token
+                    cardDetails = await paymentUtils.getCardDetailsFromToken(vaultToken);
+                    console.log(`🟢 Live mode: Retrieved card details for ${cardDetails.brand} ending in ${cardDetails.last4}`);
+                } catch (error) {
+                    console.log(`❌ Live mode token lookup failed: ${error.message}`);
+                    // Fall back to mock mode
+                    isUsingMockMode = true;
+                    cardDetails = mockResponses.getCardDetailsFromToken(vaultToken);
+                    console.log(`🟡 Fallback to mock mode: Using mock card details`);
+                }
+            }
+        }
+
+        // Validate card details
+        if (!cardDetails || !cardDetails.brand || !cardDetails.last4) {
             return res.status(400).json({
                 success: false,
-                message: 'Invalid card number format',
+                message: 'Invalid token or unable to retrieve card details',
                 errorCode: 'VALIDATION_ERROR',
                 timestamp: new Date().toISOString()
             });
         }
 
-        const cardBrand = paymentUtils.determineCardBrand(cleanCardNumber);
-        const last4 = cleanCardNumber.substring(cleanCardNumber.length - 4);
-        const expiry = `${data.expiryMonth.padStart(2, '0')}/${data.expiryYear}`;
+        const expiry = `${cardDetails.expiryMonth}/${cardDetails.expiryYear}`;
 
-        let vaultToken;
-        let isUsingMockMode = mockModeEnabled;
-
-        if (mockModeEnabled) {
-            // Use mock token
-            vaultToken = `mock_vault_${Date.now()}_${Math.random().toString(36).substring(7)}`;
-            console.log(`🟡 Mock mode: Generated mock vault token for ${cardBrand} ending in ${last4}`);
-        } else {
-            try {
-                // Try to create real vault token
-                vaultToken = await paymentUtils.createVaultTokenWithSDK(data, cleanCardNumber);
-                console.log(`🟢 Live mode: Created vault token for ${cardBrand} ending in ${last4}`);
-            } catch (error) {
-                console.log(`❌ Live mode failed: ${error.message}`);
-                return res.status(422).json({
-                    success: false,
-                    message: `Payment method creation failed: ${error.message}`,
-                    errorCode: 'PAYMENT_ERROR',
-                    timestamp: new Date().toISOString()
-                });
-            }
-        }
+        console.log(`💳 Creating payment method: ${cardDetails.brand} ending in ${cardDetails.last4}`);
+        console.log(`   Nickname: ${data.nickname || 'None'}`);
+        console.log(`   Default: ${data.isDefault || false}`);
+        console.log(`   Mock mode: ${isUsingMockMode}`);
 
         // Save payment method
         const storedData = {
-            vaultToken: vaultToken,
-            cardBrand: cardBrand,
-            last4: last4,
+            vaultToken: finalToken,
+            cardBrand: cardDetails.brand,
+            last4: cardDetails.last4,
             expiry: expiry,
-            nickname: data.nickname || `${cardBrand} ending in ${last4}`,
+            nickname: data.nickname || `${cardDetails.brand} ending in ${cardDetails.last4}`,
             isDefault: data.isDefault || false
         };
 
@@ -340,6 +394,8 @@ async function handleCreatePaymentMethod(req, res, data) {
             isDefault: savedMethod.isDefault || false,
             mockMode: isUsingMockMode
         };
+
+        console.log('✅ Payment method created successfully');
 
         res.json({
             success: true,
@@ -390,37 +446,6 @@ app.post('/charge', async (req, res) => {
     }
 });
 
-// Schedule payment endpoint
-app.post('/schedule-payment', async (req, res) => {
-    try {
-        const { paymentMethodId } = req.body;
-        
-        if (!paymentMethodId) {
-            return res.status(400).json({
-                success: false,
-                message: 'Payment method ID is required',
-                errorCode: 'VALIDATION_ERROR',
-                timestamp: new Date().toISOString()
-            });
-        }
-
-        const result = await processAuthorization(paymentMethodId, 50.00);
-        res.json({
-            success: true,
-            data: result,
-            message: 'Payment scheduled successfully',
-            timestamp: new Date().toISOString()
-        });
-    } catch (error) {
-        console.error('Schedule payment error:', error.message);
-        res.status(400).json({
-            success: false,
-            message: error.message,
-            errorCode: 'AUTHORIZATION_FAILED',
-            timestamp: new Date().toISOString()
-        });
-    }
-});
 
 // Process payment (charge)
 async function processPayment(paymentMethodId, amount, type) {
@@ -501,97 +526,6 @@ async function processPayment(paymentMethodId, amount, type) {
     }
 }
 
-// Process authorization (schedule payment)
-async function processAuthorization(paymentMethodId, amount) {
-    const paymentMethod = await jsonStorage.findPaymentMethod(paymentMethodId);
-    if (!paymentMethod) {
-        throw new Error('Payment method not found');
-    }
-
-    console.log(`⏰ Processing authorization for $${amount}`);
-    console.log(`   Card: ${paymentMethod.cardBrand} ending in ${paymentMethod.last4}`);
-
-    if (mockModeEnabled) {
-        // Generate mock response
-        const mockAuthId = `auth_${Date.now()}`;
-        const mockTransactionId = `txn_${Date.now()}`;
-        const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
-
-        console.log(`🟡 Mock mode: Generated mock authorization ${mockAuthId}`);
-
-        return {
-            authorizationId: mockAuthId,
-            transactionId: mockTransactionId,
-            amount: amount,
-            currency: 'USD',
-            status: 'authorized',
-            responseCode: '00',
-            responseMessage: 'AUTHORIZED',
-            timestamp: new Date().toISOString(),
-            expiresAt: expiresAt,
-            gatewayResponse: {
-                authCode: Math.random().toString(36).substring(2, 8).toUpperCase(),
-                referenceNumber: `ref_${Date.now()}`
-            },
-            paymentMethod: {
-                id: paymentMethod.id,
-                type: 'card',
-                brand: paymentMethod.cardBrand,
-                last4: paymentMethod.last4,
-                nickname: paymentMethod.nickname || ''
-            },
-            mockMode: true,
-            captureInfo: {
-                canCapture: true,
-                expiresAt: expiresAt
-            }
-        };
-    } else {
-        // Process with real SDK
-        try {
-            const card = new CreditCardData();
-            card.token = paymentMethod.vaultToken;
-            
-            const response = await card.authorize(amount)
-                .withCurrency('USD')
-                .withAllowDuplicates(true)
-                .execute();
-
-            const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
-            console.log(`🟢 Live authorization processed: ${response.transactionId}`);
-
-            return {
-                authorizationId: response.transactionId || '',
-                transactionId: response.transactionId || '',
-                amount: amount,
-                currency: 'USD',
-                status: response.responseCode === '00' ? 'authorized' : 'declined',
-                responseCode: response.responseCode || '',
-                responseMessage: response.responseMessage || '',
-                timestamp: new Date().toISOString(),
-                expiresAt: expiresAt,
-                gatewayResponse: {
-                    authCode: response.authorizationCode || '',
-                    referenceNumber: response.referenceNumber || ''
-                },
-                paymentMethod: {
-                    id: paymentMethod.id,
-                    type: 'card',
-                    brand: paymentMethod.cardBrand,
-                    last4: paymentMethod.last4,
-                    nickname: paymentMethod.nickname || ''
-                },
-                mockMode: false,
-                captureInfo: {
-                    canCapture: true,
-                    expiresAt: expiresAt
-                }
-            };
-        } catch (error) {
-            throw new Error(`Authorization failed: ${error.message}`);
-        }
-    }
-}
 
 // Initialize and start the server
 async function startServer() {
@@ -611,7 +545,6 @@ async function startServer() {
     console.log('   GET  /payment-methods - List payment methods');
     console.log('   POST /payment-methods - Create/edit payment methods');
     console.log('   POST /charge - Process $25 charge');
-    console.log('   POST /schedule-payment - Process $50 authorization');
     console.log('   GET  /mock-mode - Get mock mode status');
     console.log('   POST /mock-mode - Toggle mock mode');
     console.log(`🎭 Mock mode: ${mockModeEnabled ? 'enabled' : 'disabled'}`);

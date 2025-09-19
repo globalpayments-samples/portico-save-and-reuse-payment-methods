@@ -80,7 +80,6 @@ func mockModeHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		oldStatus := mockModeEnabled
 		mockModeEnabled = toggleReq.IsEnabled
 
 		// Persist mock mode configuration
@@ -89,14 +88,12 @@ func mockModeHandler(w http.ResponseWriter, r *http.Request) {
 			log.Printf("Warning: Failed to save mock mode config: %v", err)
 		}
 
-		log.Printf("Mock mode toggled from %v to %v", oldStatus, mockModeEnabled)
+		log.Printf("Mock mode is now %v", mockModeEnabled)
 
 		response := APIResponse{
 			Success: true,
 			Data: map[string]interface{}{
-				"isEnabled":  mockModeEnabled,
-				"previous":   oldStatus,
-				"changed_at": getCurrentTimestamp(),
+				"isEnabled": mockModeEnabled,
 			},
 			Message:   fmt.Sprintf("Mock mode %s", map[bool]string{true: "enabled", false: "disabled"}[mockModeEnabled]),
 			Timestamp: getCurrentTimestamp(),

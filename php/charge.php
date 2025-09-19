@@ -36,14 +36,7 @@ try {
         PaymentUtils::sendErrorResponse(404, 'Payment method not found', 'NOT_FOUND');
     }
 
-    // Defensive checks for required fields
-    if (empty($paymentMethod['cardBrand'])) {
-        error_log("Payment method {$data['paymentMethodId']} missing cardBrand field");
-        PaymentUtils::sendErrorResponse(400, 'Payment method data is incomplete', 'INVALID_PAYMENT_METHOD');
-    }
-    
-    if (empty($paymentMethod['last4'])) {
-        error_log("Payment method {$data['paymentMethodId']} missing last4 field");
+    if (empty($paymentMethod['cardBrand']) || empty($paymentMethod['last4'])) {
         PaymentUtils::sendErrorResponse(400, 'Payment method data is incomplete', 'INVALID_PAYMENT_METHOD');
     }
 
@@ -77,7 +70,6 @@ try {
         }
     }
 
-    // Convert snake_case fields to camelCase for frontend compatibility
     $response = [
         'transactionId' => $transactionResult['transaction_id'] ?? null,
         'amount' => $transactionResult['amount'],
