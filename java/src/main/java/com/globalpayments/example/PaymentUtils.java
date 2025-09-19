@@ -122,8 +122,8 @@ public class PaymentUtils {
             CreditCardData card = new CreditCardData();
             card.setToken(vaultToken);
             
-            // Use a $0.01 verify to get card details without charging
-            Transaction response = card.verify(new BigDecimal("0.01"))
+            // Use verify to get card details without charging
+            Transaction response = card.verify()
                     .withCurrency("USD")
                     .execute();
             
@@ -131,8 +131,8 @@ public class PaymentUtils {
                 // Extract card details from the response
                 String cardBrand = determineCardBrandFromType(response.getCardType() != null ? response.getCardType() : "");
                 String last4 = response.getCardLast4() != null ? response.getCardLast4() : "";
-                String expiryMonth = String.format("%02d", response.getCardExpMonth() != null ? response.getCardExpMonth() : 0);
-                String expiryYear = String.format("%02d", response.getCardExpYear() != null ? response.getCardExpYear() % 100 : 0);
+                String expiryMonth = String.format("%02d", response.getCardExpMonth() > 0 ? response.getCardExpMonth() : 0);
+                String expiryYear = String.format("%02d", response.getCardExpYear() > 0 ? response.getCardExpYear() % 100 : 0);
                 
                 System.out.println("🔍 Token lookup successful: " + cardBrand + " ending in " + last4);
                 
@@ -317,7 +317,7 @@ public class PaymentUtils {
             address.setCountry(customerData.country.trim());
 
             // Verify and request multi-use token
-            Transaction response = card.verify(new BigDecimal("0.01"))
+            Transaction response = card.verify()
                     .withCurrency("USD")
                     .withRequestMultiUseToken(true)
                     .withAddress(address)
