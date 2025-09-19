@@ -732,19 +732,21 @@
                 return;
             }
 
-            // Collect all customer information from the form
+            // Collect all customer information from the form - formatted for Java backend
             const paymentData = {
-                payment_token: token,
+                paymentToken: token,
                 cardDetails: cardDetails,
-                first_name: document.getElementById('first_name').value.trim(),
-                last_name: document.getElementById('last_name').value.trim(),
-                email: document.getElementById('email').value.trim(),
-                phone: document.getElementById('phone').value.trim(),
-                street_address: document.getElementById('street_address').value.trim(),
-                city: document.getElementById('city').value.trim(),
-                state: document.getElementById('state').value.trim(),
-                billing_zip: document.getElementById('billing_zip').value.trim(),
-                country: document.getElementById('country').value.trim(),
+                customerData: {
+                    firstName: document.getElementById('first_name').value.trim(),
+                    lastName: document.getElementById('last_name').value.trim(),
+                    email: document.getElementById('email').value.trim(),
+                    phone: document.getElementById('phone').value.trim(),
+                    streetAddress: document.getElementById('street_address').value.trim(),
+                    city: document.getElementById('city').value.trim(),
+                    state: document.getElementById('state').value.trim(),
+                    billingZip: document.getElementById('billing_zip').value.trim(),
+                    country: document.getElementById('country').value.trim()
+                },
                 nickname: nickname || null,
                 isDefault: isDefault
             };
@@ -1026,12 +1028,7 @@
                     body: JSON.stringify({
                         id: editingPaymentMethodId,
                         nickname: nickname || null,
-                        isDefault: isDefault,
-                        // These fields are not used for editing but required by backend
-                        cardNumber: '',
-                        expiryMonth: '',
-                        expiryYear: '',
-                        cvv: ''
+                        isDefault: isDefault
                     })
                 });
 
@@ -1071,12 +1068,7 @@
                     },
                     body: JSON.stringify({
                         id: paymentMethodId,
-                        isDefault: true,
-                        // These fields are not used for editing but required by backend
-                        cardNumber: '',
-                        expiryMonth: '',
-                        expiryYear: '',
-                        cvv: ''
+                        isDefault: true
                     })
                 });
 
