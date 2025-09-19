@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace CardPaymentSample;
 
 /// <summary>
@@ -33,13 +35,42 @@ public class PaymentMethodData
     public string ExpiryYear { get; set; } = string.Empty;
     public string Cvv { get; set; } = string.Empty;
     public string? VaultToken { get; set; } // Token from frontend tokenization
+
+    [JsonPropertyName("payment_token")]
     public string? PaymentToken { get; set; } // Single-use payment token from GP PaymentForm
+
     public CardDetails? CardDetails { get; set; } // Card details from frontend
     public CustomerData? CustomerData { get; set; } // Customer information
     public string? Nickname { get; set; }
+
+    [JsonPropertyName("isDefault")]
     public bool IsDefault { get; set; }
+
     public BillingAddress? BillingAddress { get; set; }
     public string? Id { get; set; } // For editing existing payment methods
+
+    // Flat customer properties to handle incoming JSON structure
+    [JsonPropertyName("first_name")]
+    public string? FirstName { get; set; }
+
+    [JsonPropertyName("last_name")]
+    public string? LastName { get; set; }
+
+    public string? Email { get; set; }
+
+    public string? Phone { get; set; }
+
+    [JsonPropertyName("street_address")]
+    public string? StreetAddress { get; set; }
+
+    public string? City { get; set; }
+
+    public string? State { get; set; }
+
+    [JsonPropertyName("billing_zip")]
+    public string? BillingZip { get; set; }
+
+    public string? Country { get; set; }
 }
 
 /// <summary>
@@ -63,10 +94,29 @@ public class CustomerData
 /// </summary>
 public class CardDetails
 {
+    [JsonPropertyName("cardType")]
     public string? CardType { get; set; }
+
+    [JsonPropertyName("cardLast4")]
     public string? CardLast4 { get; set; }
+
+    [JsonPropertyName("expiryMonth")]
     public string? ExpiryMonth { get; set; }
+
+    [JsonPropertyName("expiryYear")]
     public string? ExpiryYear { get; set; }
+
+    [JsonPropertyName("cardNumber")]
+    public string? CardNumber { get; set; }
+
+    [JsonPropertyName("cardBin")]
+    public string? CardBin { get; set; }
+
+    [JsonPropertyName("cardSecurityCode")]
+    public bool? CardSecurityCode { get; set; }
+
+    [JsonPropertyName("cardholderName")]
+    public string? CardholderName { get; set; }
 }
 
 /// <summary>

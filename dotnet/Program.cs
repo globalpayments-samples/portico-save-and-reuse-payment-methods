@@ -208,13 +208,13 @@ public class Program
             catch (Exception ex)
             {
                 Console.WriteLine($"Error retrieving payment methods: {ex.Message}");
-                return Results.Problem(new ApiResponse<object>
+                return Results.Json(new ApiResponse<object>
                 {
                     Success = false,
                     Message = "Failed to retrieve payment methods",
                     ErrorCode = "SERVER_ERROR",
                     Timestamp = DateTime.UtcNow
-                }.ToString());
+                }, statusCode: 500);
             }
         });
 
@@ -223,6 +223,7 @@ public class Program
             try
             {
                 var json = await new StreamReader(context.Request.Body).ReadToEndAsync();
+                Console.WriteLine($"Received payment method request: {json}");
                 var data = JsonSerializer.Deserialize<PaymentMethodData>(json, jsonOptions);
                 
                 if (data == null)
@@ -270,13 +271,13 @@ public class Program
             catch (Exception ex)
             {
                 Console.WriteLine($"Payment methods error: {ex.Message}");
-                return Results.Problem(new ApiResponse<object>
+                return Results.Json(new ApiResponse<object>
                 {
                     Success = false,
                     Message = "Internal server error",
                     ErrorCode = "SERVER_ERROR",
                     Timestamp = DateTime.UtcNow
-                }.ToString());
+                }, statusCode: 500);
             }
         });
 
@@ -350,13 +351,13 @@ public class Program
             var updatedMethod = await JsonStorage.UpdatePaymentMethodAsync(data.Id!, editData);
             if (updatedMethod == null)
             {
-                return Results.Problem(new ApiResponse<object>
+                return Results.Json(new ApiResponse<object>
                 {
                     Success = false,
                     Message = "Failed to update payment method",
                     ErrorCode = "UPDATE_ERROR",
                     Timestamp = DateTime.UtcNow
-                }.ToString());
+                }, statusCode: 500);
             }
 
             // Format response to match PHP exactly
@@ -383,13 +384,13 @@ public class Program
         catch (Exception ex)
         {
             Console.WriteLine($"Error updating payment method: {ex.Message}");
-            return Results.Problem(new ApiResponse<object>
+            return Results.Json(new ApiResponse<object>
             {
                 Success = false,
                 Message = "Payment method update failed",
                 ErrorCode = "SERVER_ERROR",
                 Timestamp = DateTime.UtcNow
-            }.ToString());
+            }, statusCode: 500);
         }
     }
 
@@ -400,7 +401,20 @@ public class Program
         {
             var paymentToken = data.PaymentToken!;
             var cardDetails = data.CardDetails!;
-            var customerData = data.CustomerData ?? new CustomerData();
+
+            // Create customer data from flat properties if available, otherwise use nested CustomerData
+            var customerData = data.CustomerData ?? new CustomerData
+            {
+                FirstName = data.FirstName,
+                LastName = data.LastName,
+                Email = data.Email,
+                Phone = data.Phone,
+                StreetAddress = data.StreetAddress,
+                City = data.City,
+                State = data.State,
+                BillingZip = data.BillingZip,
+                Country = data.Country
+            };
 
             Console.WriteLine($"💳 Creating payment method with token: {paymentToken.Substring(0, Math.Min(8, paymentToken.Length))}...");
             Console.WriteLine($"   Nickname: {data.Nickname ?? "None"}");
@@ -481,13 +495,13 @@ public class Program
         catch (Exception ex)
         {
             Console.WriteLine($"Error creating payment method: {ex.Message}");
-            return Results.Problem(new ApiResponse<object>
+            return Results.Json(new ApiResponse<object>
             {
                 Success = false,
                 Message = "Payment method creation failed",
                 ErrorCode = "SERVER_ERROR",
                 Timestamp = DateTime.UtcNow
-            }.ToString());
+            }, statusCode: 500);
         }
     }
 

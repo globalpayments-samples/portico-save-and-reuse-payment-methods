@@ -165,9 +165,9 @@ public static class PaymentUtils
                 if (response.ResponseCode == "00")
                 {
                     var cardBrand = DetermineCardBrandFromType(response.CardType ?? "");
-                    var last4 = response.CardLast4 ?? "";
-                    var expiryMonth = response.CardExpMonth?.ToString().PadLeft(2, '0') ?? "";
-                    var expiryYear = response.CardExpYear?.ToString()[^2..] ?? "";
+                    var last4 = response.CardDetails?.MaskedCardNumber?.Substring(Math.Max(0, response.CardDetails.MaskedCardNumber.Length - 4)) ?? "";
+                    var expiryMonth = response.CardDetails?.CardExpMonth?.ToString().PadLeft(2, '0') ?? "";
+                    var expiryYear = response.CardDetails?.CardExpYear?.ToString()[^2..] ?? "";
 
                     return new MultiUseTokenResult
                     {
