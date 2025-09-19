@@ -33,14 +33,6 @@ class PaymentUtils
         ServicesContainer::configureService($config);
     }
 
-    /**
-     * Generate unique identifier for payment methods and other entities
-     */
-    public static function generateIdentifier(string $type): string
-    {
-        $identifierBase = '%s-%s-%s';
-        return sprintf($identifierBase, $type, date('Ymd'), substr(str_shuffle('abcdefghijklmnopqrstuvwxyz0123456789'), 0, 8));
-    }
 
     /**
      * Sanitize postal code by removing invalid characters
@@ -215,43 +207,6 @@ class PaymentUtils
         }
     }
 
-    /**
-     * Create authorization using Global Payments SDK
-     */
-    public static function createAuthorizationWithSDK(string $vaultToken, float $amount, string $currency): array
-    {
-        try {
-            $card = new CreditCardData();
-            $card->token = $vaultToken;
-
-            $response = $card->authorize($amount)
-                ->withCurrency($currency)
-                ->execute();
-
-            if ($response->responseCode === '00') {
-                return [
-                    'authorization_id' => 'auth_' . uniqid(),
-                    'transaction_id' => $response->transactionId ?? 'txn_' . uniqid(),
-                    'amount' => $amount,
-                    'currency' => $currency,
-                    'status' => 'authorized',
-                    'response_code' => $response->responseCode,
-                    'response_message' => $response->responseMessage ?? 'Authorized',
-                    'timestamp' => date('c'),
-                    'expires_at' => date('c', strtotime('+7 days')),
-                    'gateway_response' => [
-                        'auth_code' => $response->authorizationCode ?? '',
-                        'reference_number' => $response->referenceNumber ?? ''
-                    ]
-                ];
-            } else {
-                throw new \Exception('Authorization failed: ' . ($response->responseMessage ?? 'Unknown error'));
-            }
-        } catch (\Exception $e) {
-            error_log('SDK authorization error: ' . $e->getMessage());
-            throw $e;
-        }
-    }
 
 
     /**

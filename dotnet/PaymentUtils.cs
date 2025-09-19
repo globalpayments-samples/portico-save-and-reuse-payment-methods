@@ -67,9 +67,29 @@ public static class PaymentUtils
     }
 
     /// <summary>
-    /// Create vault token using Global Payments SDK
+    /// Determine card brand from Global Payments card type
     /// </summary>
-    public static async Task<string> CreateVaultTokenWithSdkAsync(PaymentMethodData data)
+    public static string DetermineCardBrandFromType(string cardType)
+    {
+        if (string.IsNullOrEmpty(cardType)) return "Unknown";
+
+        var type = cardType.ToLower();
+
+        return type switch
+        {
+            "visa" => "Visa",
+            "mastercard" or "mc" => "Mastercard",
+            "amex" or "americanexpress" => "American Express",
+            "discover" => "Discover",
+            "jcb" => "JCB",
+            _ => "Unknown"
+        };
+    }
+
+    /// <summary>
+    /// Create multi-use token with customer data attached
+    /// </summary>
+    public static async Task<MultiUseTokenResult> CreateMultiUseTokenWithCustomerAsync(string paymentToken, CustomerData customerData, CardDetails cardDetails)
     {
         return await Task.Run(() =>
         {
@@ -77,75 +97,100 @@ public static class PaymentUtils
             {
                 var card = new CreditCardData
                 {
-                    Number = data.CardNumber,
-                    ExpMonth = int.Parse(data.ExpiryMonth),
-                    ExpYear = int.Parse(data.ExpiryYear.Length > 2 ? data.ExpiryYear.Substring(2) : data.ExpiryYear),
-                    Cvn = data.Cvv
+                    Token = paymentToken
                 };
 
-                // Add billing address if available, otherwise use default
-                if (data.BillingAddress != null)
+                // Create address from customer data
+                var address = new Address
                 {
-                    card.CardHolderName = data.BillingAddress.Name;
-                }
-                else
-                {
-                    card.CardHolderName = "Test User";
-                }
+                    StreetAddress1 = customerData.StreetAddress?.Trim() ?? "",
+                    City = customerData.City?.Trim() ?? "",
+                    Province = customerData.State?.Trim() ?? "",
+                    PostalCode = SanitizePostalCode(customerData.BillingZip),
+                    Country = customerData.Country?.Trim() ?? ""
+                };
 
-                Console.WriteLine($"🔑 PAYMENT METHOD CREATION - Attempting tokenization for card ending in {data.CardNumber[^4..]}");
-                Console.WriteLine($"   📝 Card Brand: {DetermineCardBrand(data.CardNumber)}");
-                Console.WriteLine($"   📅 Expiry: {data.ExpiryMonth}/{data.ExpiryYear}");
-                Console.WriteLine($"   👤 Nickname: {data.Nickname ?? "None"}");
-                Console.WriteLine($"   ⭐ Set as Default: {data.IsDefault}");
-
-                // For Portico, we need to use Verify() with store flag to create a usable token
                 var response = card.Verify()
+                    .WithCurrency("USD")
                     .WithRequestMultiUseToken(true)
+                    .WithAddress(address)
                     .Execute();
 
-                if (response.ResponseCode == "00" && !string.IsNullOrEmpty(response.Token))
+                if (response.ResponseCode == "00")
                 {
-                    // Log successful tokenization in live mode
-                    Console.WriteLine("✅ 🟢 LIVE MODE - Payment Method Created Successfully:");
-                    Console.WriteLine($"   ⏰ Timestamp: {DateTime.UtcNow:yyyy-MM-ddTHH:mm:ss}");
-                    Console.WriteLine($"   🔐 Vault Token: {response.Token}");
-                    Console.WriteLine($"   💳 Card Brand: {DetermineCardBrand(data.CardNumber)}");
-                    Console.WriteLine($"   🔢 Last 4: {data.CardNumber[^4..]}");
-                    Console.WriteLine($"   📅 Expiry: {data.ExpiryMonth}/{data.ExpiryYear}");
-                    Console.WriteLine($"   📛 Nickname: {data.Nickname ?? "None"}");
-                    Console.WriteLine($"   ⭐ Default: {data.IsDefault}");
-                    Console.WriteLine($"   📡 API Status: Connected & Working");
-                    
-                    return response.Token;
+                    var brand = DetermineCardBrandFromType(cardDetails.CardType ?? "");
+
+                    return new MultiUseTokenResult
+                    {
+                        MultiUseToken = response.Token ?? paymentToken,
+                        Brand = brand,
+                        Last4 = cardDetails.CardLast4 ?? "",
+                        ExpiryMonth = cardDetails.ExpiryMonth ?? "",
+                        ExpiryYear = cardDetails.ExpiryYear ?? "",
+                        CustomerData = customerData
+                    };
                 }
                 else
                 {
-                    // Log failed tokenization attempt
-                    Console.WriteLine($"❌ 🔴 LIVE MODE - Payment Method Creation Failed:");
-                    Console.WriteLine($"   ⏰ Timestamp: {DateTime.UtcNow:yyyy-MM-ddTHH:mm:ss}");
-                    Console.WriteLine($"   💳 Card Brand: {DetermineCardBrand(data.CardNumber)}");
-                    Console.WriteLine($"   🔢 Last 4: {data.CardNumber[^4..]}");
-                    Console.WriteLine($"   📅 Expiry: {data.ExpiryMonth}/{data.ExpiryYear}");
-                    Console.WriteLine($"   ❌ Error: {response.ResponseMessage ?? "No token returned"}");
-                    Console.WriteLine($"   📡 API Status: Connected but Declined");
-                    
-                    throw new Exception($"Tokenization failed: {response.ResponseMessage ?? "No token returned"}");
+                    throw new Exception($"Multi-use token creation failed: {response.ResponseMessage ?? "Unknown error"}");
                 }
             }
             catch (Exception ex)
             {
-                Console.Error.WriteLine($"❌ 🔴 LIVE MODE - Payment Method Creation Error:");
-                Console.Error.WriteLine($"   ⏰ Timestamp: {DateTime.UtcNow:yyyy-MM-ddTHH:mm:ss}");
-                Console.Error.WriteLine($"   💳 Card Brand: {DetermineCardBrand(data.CardNumber)}");
-                Console.Error.WriteLine($"   🔢 Last 4: {data.CardNumber[^4..]}");
-                Console.Error.WriteLine($"   ❌ SDK Error: {ex.Message}");
-                Console.Error.WriteLine($"   📡 API Status: Connection Failed");
-                Console.Error.WriteLine($"   🚫 NO FALLBACK - Error will be returned to user");
+                Console.Error.WriteLine($"Multi-use token creation error: {ex.Message}");
                 throw;
             }
         });
     }
+
+    /// <summary>
+    /// Get card details from vault token using Global Payments SDK
+    /// </summary>
+    public static async Task<MultiUseTokenResult> GetCardDetailsFromTokenAsync(string vaultToken)
+    {
+        return await Task.Run(() =>
+        {
+            try
+            {
+                var card = new CreditCardData
+                {
+                    Token = vaultToken
+                };
+
+                var response = card.Verify()
+                    .WithCurrency("USD")
+                    .WithRequestMultiUseToken(true)
+                    .Execute();
+
+                if (response.ResponseCode == "00")
+                {
+                    var cardBrand = DetermineCardBrandFromType(response.CardType ?? "");
+                    var last4 = response.CardLast4 ?? "";
+                    var expiryMonth = response.CardExpMonth?.ToString().PadLeft(2, '0') ?? "";
+                    var expiryYear = response.CardExpYear?.ToString()[^2..] ?? "";
+
+                    return new MultiUseTokenResult
+                    {
+                        Brand = cardBrand,
+                        Last4 = last4,
+                        ExpiryMonth = expiryMonth,
+                        ExpiryYear = expiryYear,
+                        MultiUseToken = response.Token ?? ""
+                    };
+                }
+                else
+                {
+                    throw new Exception($"Token verification failed: {response.ResponseMessage ?? "Unknown error"}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"SDK token lookup error: {ex.Message}");
+                throw;
+            }
+        });
+    }
+
 
     /// <summary>
     /// Process payment using Global Payments SDK
@@ -226,87 +271,4 @@ public static class PaymentUtils
         });
     }
 
-    /// <summary>
-    /// Create authorization using Global Payments SDK
-    /// </summary>
-    public static async Task<AuthorizationResponse> CreateAuthorizationWithSdkAsync(string vaultToken, decimal amount, string currency)
-    {
-        return await Task.Run(() =>
-        {
-            try
-            {
-                Console.WriteLine($"⏰ PAYMENT SCHEDULING - Creating authorization with token: {vaultToken[..8]}...");
-                Console.WriteLine($"   💵 Amount: ${amount} {currency}");
-
-                var card = new CreditCardData
-                {
-                    Token = vaultToken
-                };
-
-                var response = card.Authorize(amount)
-                    .WithCurrency(currency)
-                    .Execute();
-
-                if (response.ResponseCode == "00")
-                {
-                    var expiresAt = DateTime.UtcNow.AddDays(7);
-                    
-                    // Log successful authorization in live mode
-                    Console.WriteLine("✅ 🟢 LIVE MODE - Payment Authorization Created Successfully:");
-                    Console.WriteLine($"   ⏰ Timestamp: {DateTime.UtcNow:yyyy-MM-ddTHH:mm:ss}");
-                    Console.WriteLine($"   🆔 Transaction ID: {response.TransactionId ?? "N/A"}");
-                    Console.WriteLine($"   💵 Amount: ${amount} {currency}");
-                    Console.WriteLine($"   🔐 Vault Token: {vaultToken[..8]}...");
-                    Console.WriteLine($"   📋 Response Code: {response.ResponseCode}");
-                    Console.WriteLine($"   💬 Response Message: {response.ResponseMessage ?? "Authorized"}");
-                    Console.WriteLine($"   🔑 Auth Code: {response.AuthorizationCode ?? "N/A"}");
-                    Console.WriteLine($"   📄 Reference Number: {response.ReferenceNumber ?? "N/A"}");
-                    Console.WriteLine($"   ⏰ Expires: {expiresAt:yyyy-MM-ddTHH:mm:ss}");
-                    Console.WriteLine($"   📡 API Status: Connected & Working");
-                    
-                    return new AuthorizationResponse
-                    {
-                        AuthorizationId = $"auth_{DateTimeOffset.UtcNow.ToUnixTimeSeconds()}_{Guid.NewGuid().ToString()[^9..]}",
-                        TransactionId = response.TransactionId ?? $"txn_{DateTimeOffset.UtcNow.ToUnixTimeSeconds()}_{Guid.NewGuid().ToString()[^9..]}",
-                        Amount = amount,
-                        Currency = currency,
-                        Status = "authorized",
-                        ResponseCode = response.ResponseCode,
-                        ResponseMessage = response.ResponseMessage ?? "Authorized",
-                        Timestamp = DateTime.UtcNow,
-                        ExpiresAt = expiresAt,
-                        GatewayResponse = new GatewayResponse
-                        {
-                            AuthCode = response.AuthorizationCode ?? "",
-                            ReferenceNumber = response.ReferenceNumber ?? ""
-                        }
-                    };
-                }
-                else
-                {
-                    // Log failed authorization
-                    Console.WriteLine($"❌ 🔴 LIVE MODE - Payment Authorization Failed:");
-                    Console.WriteLine($"   ⏰ Timestamp: {DateTime.UtcNow:yyyy-MM-ddTHH:mm:ss}");
-                    Console.WriteLine($"   💵 Amount: ${amount} {currency}");
-                    Console.WriteLine($"   🔐 Vault Token: {vaultToken[..8]}...");
-                    Console.WriteLine($"   📋 Response Code: {response.ResponseCode}");
-                    Console.WriteLine($"   ❌ Error: {response.ResponseMessage ?? "Unknown error"}");
-                    Console.WriteLine($"   📡 API Status: Connected but Declined");
-                    
-                    throw new Exception($"Authorization failed: {response.ResponseMessage ?? "Unknown error"}");
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.Error.WriteLine($"❌ 🔴 LIVE MODE - Payment Authorization Error:");
-                Console.Error.WriteLine($"   ⏰ Timestamp: {DateTime.UtcNow:yyyy-MM-ddTHH:mm:ss}");
-                Console.Error.WriteLine($"   💵 Amount: ${amount} {currency}");
-                Console.Error.WriteLine($"   🔐 Vault Token: {vaultToken[..8]}...");
-                Console.Error.WriteLine($"   ❌ SDK Error: {ex.Message}");
-                Console.Error.WriteLine($"   📡 API Status: Connection Failed");
-                Console.Error.WriteLine($"   🚫 NO FALLBACK - Error will be returned to user");
-                throw;
-            }
-        });
-    }
 }

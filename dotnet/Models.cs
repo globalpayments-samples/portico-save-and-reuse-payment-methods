@@ -32,10 +32,54 @@ public class PaymentMethodData
     public string ExpiryMonth { get; set; } = string.Empty;
     public string ExpiryYear { get; set; } = string.Empty;
     public string Cvv { get; set; } = string.Empty;
+    public string? VaultToken { get; set; } // Token from frontend tokenization
+    public string? PaymentToken { get; set; } // Single-use payment token from GP PaymentForm
+    public CardDetails? CardDetails { get; set; } // Card details from frontend
+    public CustomerData? CustomerData { get; set; } // Customer information
     public string? Nickname { get; set; }
     public bool IsDefault { get; set; }
     public BillingAddress? BillingAddress { get; set; }
     public string? Id { get; set; } // For editing existing payment methods
+}
+
+/// <summary>
+/// Customer data for multi-use token creation
+/// </summary>
+public class CustomerData
+{
+    public string? FirstName { get; set; }
+    public string? LastName { get; set; }
+    public string? Email { get; set; }
+    public string? Phone { get; set; }
+    public string? StreetAddress { get; set; }
+    public string? City { get; set; }
+    public string? State { get; set; }
+    public string? BillingZip { get; set; }
+    public string? Country { get; set; }
+}
+
+/// <summary>
+/// Card details from frontend tokenization
+/// </summary>
+public class CardDetails
+{
+    public string? CardType { get; set; }
+    public string? CardLast4 { get; set; }
+    public string? ExpiryMonth { get; set; }
+    public string? ExpiryYear { get; set; }
+}
+
+/// <summary>
+/// Multi-use token creation result
+/// </summary>
+public class MultiUseTokenResult
+{
+    public string MultiUseToken { get; set; } = string.Empty;
+    public string Brand { get; set; } = string.Empty;
+    public string Last4 { get; set; } = string.Empty;
+    public string ExpiryMonth { get; set; } = string.Empty;
+    public string ExpiryYear { get; set; } = string.Empty;
+    public CustomerData? CustomerData { get; set; }
 }
 
 /// <summary>
@@ -63,6 +107,7 @@ public class StoredPaymentMethodData
     public string ExpiryYear { get; set; } = string.Empty;
     public string? Nickname { get; set; }
     public bool IsDefault { get; set; }
+    public CustomerData? CustomerData { get; set; }
 }
 
 /// <summary>
@@ -78,6 +123,7 @@ public class PaymentMethod
     public string ExpiryYear { get; set; } = string.Empty;
     public string? Nickname { get; set; }
     public bool IsDefault { get; set; }
+    public CustomerData? CustomerData { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }
@@ -119,22 +165,6 @@ public class PaymentResponse
     public GatewayResponse GatewayResponse { get; set; } = new();
 }
 
-/// <summary>
-/// Authorization response
-/// </summary>
-public class AuthorizationResponse
-{
-    public string AuthorizationId { get; set; } = string.Empty;
-    public string TransactionId { get; set; } = string.Empty;
-    public decimal Amount { get; set; }
-    public string Currency { get; set; } = string.Empty;
-    public string Status { get; set; } = string.Empty;
-    public string ResponseCode { get; set; } = string.Empty;
-    public string ResponseMessage { get; set; } = string.Empty;
-    public DateTime Timestamp { get; set; }
-    public DateTime ExpiresAt { get; set; }
-    public GatewayResponse GatewayResponse { get; set; } = new();
-}
 
 /// <summary>
 /// Gateway response details
@@ -157,14 +187,6 @@ public class PaymentMethodInfo
     public string Nickname { get; set; } = string.Empty;
 }
 
-/// <summary>
-/// Capture information
-/// </summary>
-public class CaptureInfo
-{
-    public bool CanCapture { get; set; }
-    public DateTime ExpiresAt { get; set; }
-}
 
 /// <summary>
 /// Decline response
@@ -192,25 +214,6 @@ public class ChargeResponseData
     public bool MockMode { get; set; }
 }
 
-/// <summary>
-/// Schedule payment response data
-/// </summary>
-public class ScheduleResponseData
-{
-    public string AuthorizationId { get; set; } = string.Empty;
-    public string TransactionId { get; set; } = string.Empty;
-    public decimal Amount { get; set; }
-    public string Currency { get; set; } = string.Empty;
-    public string Status { get; set; } = string.Empty;
-    public string ResponseCode { get; set; } = string.Empty;
-    public string ResponseMessage { get; set; } = string.Empty;
-    public DateTime Timestamp { get; set; }
-    public DateTime ExpiresAt { get; set; }
-    public GatewayResponse GatewayResponse { get; set; } = new();
-    public PaymentMethodInfo PaymentMethod { get; set; } = new();
-    public bool MockMode { get; set; }
-    public CaptureInfo CaptureInfo { get; set; } = new();
-}
 
 /// <summary>
 /// Mock mode configuration

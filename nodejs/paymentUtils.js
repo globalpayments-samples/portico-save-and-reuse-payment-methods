@@ -122,6 +122,69 @@ export const createVaultTokenWithSDK = async (data) => {
 };
 
 /**
+ * Get card details from vault token using Global Payments SDK
+ */
+export const getCardDetailsFromToken = async (vaultToken) => {
+    try {
+        const card = new CreditCardData();
+        card.token = vaultToken;
+        
+        // Use a $0.01 verify to get card details without charging
+        const response = await card.verify()
+            .withAmount(0.01)
+            .withCurrency('USD')
+            .execute();
+        
+        if (response.responseCode === '00') {
+            // Extract card details from the response
+            const cardBrand = determineCardBrandFromType(response.cardType || '');
+            const last4 = response.cardLast4 || '';
+            const expiryMonth = String(response.cardExpMonth || '').padStart(2, '0');
+            const expiryYear = String(response.cardExpYear || '').slice(-2);
+            
+            console.log(`🔍 Token lookup successful: ${cardBrand} ending in ${last4}`);
+            
+            return {
+                brand: cardBrand,
+                last4: last4,
+                expiryMonth: expiryMonth,
+                expiryYear: expiryYear,
+                token: vaultToken
+            };
+        } else {
+            throw new Error(`Token verification failed: ${response.responseMessage || 'Unknown error'}`);
+        }
+    } catch (error) {
+        console.error('SDK token lookup error:', error.message);
+        throw error;
+    }
+};
+
+/**
+ * Determine card brand from Global Payments card type
+ */
+export const determineCardBrandFromType = (cardType) => {
+    const type = cardType.toLowerCase();
+    
+    switch (type) {
+        case 'visa':
+            return 'Visa';
+        case 'mastercard':
+        case 'mc':
+            return 'Mastercard';
+        case 'amex':
+        case 'americanexpress':
+            return 'American Express';
+        case 'discover':
+            return 'Discover';
+        case 'jcb':
+            return 'JCB';
+        default:
+            return 'Unknown';
+    }
+};
+
+/**
  * Process payment using Global Payments SDK
  */
 export const processPaymentWithSDK = async (vaultToken, amount, currency) => {
@@ -180,114 +243,58 @@ export const processPaymentWithSDK = async (vaultToken, amount, currency) => {
     }
 };
 
+
 /**
- * Create authorization using Global Payments SDK
+ * Create multi-use token with customer data using Global Payments SDK
  */
-export const createAuthorizationWithSDK = async (vaultToken, amount, currency) => {
+export const createMultiUseTokenWithCustomer = async (paymentToken, customerData, cardDetails) => {
     try {
         const card = new CreditCardData();
-        card.token = vaultToken;
+        card.token = paymentToken;
 
-        const response = await card.authorize(amount)
-            .withCurrency(currency)
+        // Create address from customer data
+        const address = new Address();
+        address.streetAddress1 = (customerData.street_address || '').trim();
+        address.city = (customerData.city || '').trim();
+        address.state = (customerData.state || '').trim();
+        address.postalCode = sanitizePostalCode(customerData.billing_zip || '');
+        address.country = (customerData.country || '').trim();
+
+        // Verify and request multi-use token
+        const response = await card.verify(0.01)
+            .withCurrency('USD')
+            .withRequestMultiUseToken(true)
+            .withAddress(address)
             .execute();
 
         if (response.responseCode === '00') {
-            const expiresAt = new Date();
-            expiresAt.setDate(expiresAt.getDate() + 7);
-            
-            // Log successful authorization in live mode
-            console.log(`⏰ PAYMENT SCHEDULING - Creating authorization with token: ${vaultToken.substring(0, 8)}...`);
-            console.log(`   💵 Amount: $${amount.toFixed(2)} ${currency}`);
-            
-            console.log('✅ 🟢 LIVE MODE - Payment Authorization Created Successfully:');
+            const brand = determineCardBrandFromType(cardDetails.cardType || '');
+            const finalToken = response.token || paymentToken;
+
+            console.log('✅ MULTI-USE TOKEN CREATION SUCCESS:');
             console.log(`   ⏰ Timestamp: ${new Date().toISOString()}`);
-            console.log(`   🆔 Transaction ID: ${response.transactionId || 'N/A'}`);
-            console.log(`   💵 Amount: $${amount.toFixed(2)} ${currency}`);
-            console.log(`   🔐 Vault Token: ${vaultToken.substring(0, 8)}...`);
-            console.log(`   📋 Response Code: ${response.responseCode}`);
-            console.log(`   💬 Response Message: ${response.responseMessage || 'Authorized'}`);
-            console.log(`   🔑 Auth Code: ${response.authorizationCode || 'N/A'}`);
-            console.log(`   📄 Reference Number: ${response.referenceNumber || 'N/A'}`);
-            console.log(`   ⏰ Expires: ${expiresAt.toISOString()}`);
-            console.log('   📡 API Status: Connected & Working');
-            
+            console.log(`   🎯 Original Token: ${paymentToken.substring(0, Math.min(8, paymentToken.length))}...`);
+            console.log(`   🔄 Multi-Use Token: ${finalToken.substring(0, Math.min(8, finalToken.length))}...`);
+            console.log(`   💳 Card Brand: ${brand}`);
+            console.log(`   🔢 Last 4: ${cardDetails.cardLast4 || ''}`);
+            console.log(`   📅 Expiry: ${cardDetails.expiryMonth || ''}/${cardDetails.expiryYear || ''}`);
+            console.log(`   👤 Customer: ${customerData.first_name || ''} ${customerData.last_name || ''}`);
+            console.log(`   📍 Address: ${customerData.city || ''}, ${customerData.state || ''} ${customerData.billing_zip || ''}`);
+
             return {
-                authorization_id: `auth_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-                transaction_id: response.transactionId || `txn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-                amount: amount,
-                currency: currency,
-                status: 'authorized',
-                response_code: response.responseCode,
-                response_message: response.responseMessage || 'Authorized',
-                timestamp: new Date().toISOString(),
-                expires_at: expiresAt.toISOString(),
-                gateway_response: {
-                    auth_code: response.authorizationCode || '',
-                    reference_number: response.referenceNumber || ''
-                }
+                multiUseToken: finalToken,
+                brand: brand,
+                last4: cardDetails.cardLast4 || '',
+                expiryMonth: cardDetails.expiryMonth || '',
+                expiryYear: cardDetails.expiryYear || '',
+                customerData: customerData
             };
         } else {
-            // Log failed authorization
-            console.log('❌ 🔴 LIVE MODE - Payment Authorization Failed:');
-            console.log(`   ⏰ Timestamp: ${new Date().toISOString()}`);
-            console.log(`   💵 Amount: $${amount.toFixed(2)} ${currency}`);
-            console.log(`   🔐 Vault Token: ${vaultToken.substring(0, 8)}...`);
-            console.log(`   📋 Response Code: ${response.responseCode}`);
-            console.log(`   ❌ Error: ${response.responseMessage || 'Unknown error'}`);
-            console.log('   📡 API Status: Connected but Declined');
-            
-            throw new Error(`Authorization failed: ${response.responseMessage || 'Unknown error'}`);
+            throw new Error(`Multi-use token creation failed: ${response.responseMessage || 'Unknown error'}`);
         }
     } catch (error) {
-        console.error('SDK authorization error:', error.message);
+        console.error('Multi-use token creation error:', error.message);
         throw error;
     }
 };
 
-/**
- * Send success response
- */
-export const sendSuccessResponse = (res, data, message = 'Operation completed successfully') => {
-    const response = {
-        success: true,
-        data: data,
-        message: message,
-        timestamp: new Date().toISOString()
-    };
-    
-    res.json(response);
-};
-
-/**
- * Send error response
- */
-export const sendErrorResponse = (res, statusCode, message, errorCode = null) => {
-    const response = {
-        success: false,
-        message: message,
-        timestamp: new Date().toISOString()
-    };
-    
-    if (errorCode) {
-        response.error_code = errorCode;
-    }
-    
-    res.status(statusCode).json(response);
-};
-
-/**
- * Handle CORS headers
- */
-export const handleCORS = (req, res, next) => {
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-    
-    if (req.method === 'OPTIONS') {
-        res.status(200).end();
-        return;
-    }
-    
-    next();
-};
