@@ -3,35 +3,6 @@
  */
 
 /**
- * Get response type based on card's last 4 digits
- */
-export const getResponseByCardNumber = (last4) => {
-    // Success scenarios
-    if (['1111', '4242', '0000'].includes(last4)) {
-        return 'success';
-    }
-    
-    // Decline scenarios
-    const declineMap = {
-        '0002': 'decline_insufficient_funds',
-        '0004': 'decline_generic',
-        '0005': 'decline_pickup_card',
-        '0041': 'decline_lost_card',
-        '0043': 'decline_stolen_card',
-        '0051': 'decline_expired_card',
-        '0054': 'decline_incorrect_cvc',
-        '0055': 'decline_incorrect_zip',
-        '0065': 'decline_card_declined',
-        '0076': 'decline_invalid_account',
-        '0078': 'decline_card_not_activated',
-        '0091': 'error_processing_error',
-        '0096': 'error_system_error'
-    };
-    
-    return declineMap[last4] || 'success';
-};
-
-/**
  * Get successful payment response
  */
 export const getPaymentResponse = (amount, paymentMethodId) => {

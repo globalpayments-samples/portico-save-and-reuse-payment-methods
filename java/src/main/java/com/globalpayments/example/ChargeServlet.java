@@ -70,18 +70,9 @@ public class ChargeServlet extends HttpServlet {
             if (MockModeServlet.isMockModeEnabled()) {
                 mockMode = true;
                 String last4 = (String) paymentMethod.get("last4");
-                String responseType = MockResponses.getResponseByCardNumber(last4);
-                
+
                 System.out.println("🟡 MOCK MODE - Processing payment with card ending in " + last4);
-                
-                if ("success".equals(responseType)) {
-                    transactionResult = MockResponses.getPaymentResponse(amount, paymentMethodId);
-                } else {
-                    String declineReason = responseType.replaceAll("(decline_|error_)", "");
-                    Map<String, String> declineResponse = MockResponses.getDeclineResponse(declineReason);
-                    sendErrorResponse(response, 422, declineResponse.get("responseMessage"), declineResponse.get("errorCode"));
-                    return;
-                }
+                transactionResult = MockResponses.getPaymentResponse(amount, paymentMethodId);
             } else {
                 // Live mode - no fallback to mock
                 String secretApiKey = dotenv.get("SECRET_API_KEY");

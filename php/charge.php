@@ -59,15 +59,7 @@ try {
     }
 
     if ($mockMode || !$transactionResult) {
-        $responseType = MockResponses::getResponseByCardNumber($paymentMethod['last4']);
-        
-        if ($responseType === 'success') {
-            $transactionResult = MockResponses::getPaymentResponse($amount, $data['paymentMethodId']);
-        } else {
-            $declineReason = str_replace(['decline_', 'error_'], '', $responseType);
-            $declineResponse = MockResponses::getDeclineResponse($declineReason);
-            PaymentUtils::sendErrorResponse(422, $declineResponse['response_message'], $declineResponse['error_code']);
-        }
+        $transactionResult = MockResponses::getPaymentResponse($amount, $data['paymentMethodId']);
     }
 
     $response = [

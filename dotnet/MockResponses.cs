@@ -6,39 +6,6 @@ namespace CardPaymentSample;
 public static class MockResponses
 {
     /// <summary>
-    /// Get response type based on card's last 4 digits
-    /// </summary>
-    public static string GetResponseByCardNumber(string last4)
-    {
-        // Success scenarios - Heartland Portico compatible test cards
-        var successCards = new[] { "0016", "0014", "6527", "0608", "1111", "1112" };
-        if (successCards.Contains(last4))
-        {
-            return "success";
-        }
-
-        // Decline scenarios
-        var declineMap = new Dictionary<string, string>
-        {
-            {"0002", "decline_insufficient_funds"},
-            {"0004", "decline_generic"},
-            {"0005", "decline_pickup_card"},
-            {"0041", "decline_lost_card"},
-            {"0043", "decline_stolen_card"},
-            {"0051", "decline_expired_card"},
-            {"0054", "decline_incorrect_cvc"},
-            {"0055", "decline_incorrect_zip"},
-            {"0065", "decline_card_declined"},
-            {"0076", "decline_invalid_account"},
-            {"0078", "decline_card_not_activated"},
-            {"0091", "error_processing_error"},
-            {"0096", "error_system_error"}
-        };
-
-        return declineMap.TryGetValue(last4, out var responseType) ? responseType : "success";
-    }
-
-    /// <summary>
     /// Get successful payment response
     /// </summary>
     public static PaymentResponse GetPaymentResponse(decimal amount, string paymentMethodId)

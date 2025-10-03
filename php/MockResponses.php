@@ -106,18 +106,4 @@ class MockResponses
             'error_code' => 'GENERIC_DECLINE'
         ];
     }
-
-    /**
-     * Determine response type based on card number (for testing)
-     */
-    public static function getResponseByCardNumber(string $last4): string
-    {
-        $testCards = [
-            '0002' => 'decline_insufficient_funds',
-            '0004' => 'decline_expired_card',
-            '0005' => 'decline_invalid_card'
-        ];
-
-        return $testCards[$last4] ?? 'success';
-    }
 }

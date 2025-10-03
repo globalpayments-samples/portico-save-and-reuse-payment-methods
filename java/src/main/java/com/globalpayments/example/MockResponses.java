@@ -11,37 +11,7 @@ import java.util.UUID;
  * Mock responses for testing payment scenarios
  */
 public class MockResponses {
-    
-    /**
-     * Get response type based on card's last 4 digits
-     */
-    public static String getResponseByCardNumber(String last4) {
-        // Success scenarios
-        if ("1111".equals(last4) || "4242".equals(last4) || "0000".equals(last4)) {
-            return "success";
-        }
-        
-        // Decline scenarios
-        if ("0002".equals(last4)) return "decline_insufficient_funds";
-        if ("0004".equals(last4)) return "decline_generic";
-        if ("0005".equals(last4)) return "decline_pickup_card";
-        if ("0041".equals(last4)) return "decline_lost_card";
-        if ("0043".equals(last4)) return "decline_stolen_card";
-        if ("0051".equals(last4)) return "decline_expired_card";
-        if ("0054".equals(last4)) return "decline_incorrect_cvc";
-        if ("0055".equals(last4)) return "decline_incorrect_zip";
-        if ("0065".equals(last4)) return "decline_card_declined";
-        if ("0076".equals(last4)) return "decline_invalid_account";
-        if ("0078".equals(last4)) return "decline_card_not_activated";
-        
-        // Error scenarios  
-        if ("0091".equals(last4)) return "error_processing_error";
-        if ("0096".equals(last4)) return "error_system_error";
-        
-        // Default to success for unknown cards
-        return "success";
-    }
-    
+
     /**
      * Get successful payment response
      */
