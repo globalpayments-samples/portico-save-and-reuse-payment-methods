@@ -53,25 +53,6 @@ public class PaymentUtils {
     }
     
     /**
-     * Determine card brand from card number
-     */
-    public static String determineCardBrand(String cardNumber) {
-        cardNumber = cardNumber.replaceAll("\\s+", "");
-        
-        if (cardNumber.matches("^4.*")) {
-            return "Visa";
-        } else if (cardNumber.matches("^5[1-5].*") || cardNumber.matches("^2[2-7].*")) {
-            return "Mastercard";
-        } else if (cardNumber.matches("^3[47].*")) {
-            return "American Express";
-        } else if (cardNumber.matches("^6(?:011|5).*")) {
-            return "Discover";
-        } else {
-            return "Unknown";
-        }
-    }
-    
-    /**
      * Create vault token using Global Payments SDK
      */
     public static String createVaultTokenWithSDK(Map<String, Object> data) throws Exception {
@@ -101,7 +82,6 @@ public class PaymentUtils {
                 System.out.println("✅ LIVE MODE - Tokenization Success:");
                 System.out.println("   Timestamp: " + LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
                 System.out.println("   Vault Token: " + token);
-                System.out.println("   Card Brand: " + determineCardBrand((String) data.get("cardNumber")));
                 System.out.println("   Last 4: " + ((String) data.get("cardNumber")).replaceAll("\\s+", "").substring(((String) data.get("cardNumber")).replaceAll("\\s+", "").length() - 4));
                 System.out.println("   Expiry: " + data.get("expiryMonth") + "/" + data.get("expiryYear"));
                 return token;

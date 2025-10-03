@@ -48,26 +48,6 @@ class PaymentUtils
     }
 
     /**
-     * Determine card brand from card number
-     */
-    public static function determineCardBrand(string $cardNumber): string
-    {
-        $cardNumber = preg_replace('/\s+/', '', $cardNumber);
-        
-        if (preg_match('/^4/', $cardNumber)) {
-            return 'Visa';
-        } elseif (preg_match('/^5[1-5]/', $cardNumber) || preg_match('/^2[2-7]/', $cardNumber)) {
-            return 'Mastercard';
-        } elseif (preg_match('/^3[47]/', $cardNumber)) {
-            return 'American Express';
-        } elseif (preg_match('/^6(?:011|5)/', $cardNumber)) {
-            return 'Discover';
-        } else {
-            return 'Unknown';
-        }
-    }
-
-    /**
      * Determine card brand from Global Payments card type
      */
     public static function determineCardBrandFromType(string $cardType): string

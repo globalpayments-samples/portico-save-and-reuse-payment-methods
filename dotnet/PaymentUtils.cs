@@ -48,25 +48,6 @@ public static class PaymentUtils
     }
 
     /// <summary>
-    /// Determine card brand from card number
-    /// </summary>
-    public static string DetermineCardBrand(string cardNumber)
-    {
-        var cleanNumber = Regex.Replace(cardNumber, @"\s+", "");
-
-        if (Regex.IsMatch(cleanNumber, @"^4"))
-            return "Visa";
-        else if (Regex.IsMatch(cleanNumber, @"^5[1-5]") || Regex.IsMatch(cleanNumber, @"^2[2-7]"))
-            return "Mastercard";
-        else if (Regex.IsMatch(cleanNumber, @"^3[47]"))
-            return "American Express";
-        else if (Regex.IsMatch(cleanNumber, @"^6(?:011|5)"))
-            return "Discover";
-        else
-            return "Unknown";
-    }
-
-    /// <summary>
     /// Determine card brand from Global Payments card type
     /// </summary>
     public static string DetermineCardBrandFromType(string cardType)

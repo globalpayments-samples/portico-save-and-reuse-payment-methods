@@ -43,25 +43,6 @@ export const sanitizePostalCode = (postalCode) => {
 };
 
 /**
- * Determine card brand from card number
- */
-export const determineCardBrand = (cardNumber) => {
-    const cleanNumber = cardNumber.replace(/\s+/g, '');
-    
-    if (cleanNumber.match(/^4/)) {
-        return 'Visa';
-    } else if (cleanNumber.match(/^5[1-5]/) || cleanNumber.match(/^2[2-7]/)) {
-        return 'Mastercard';
-    } else if (cleanNumber.match(/^3[47]/)) {
-        return 'American Express';
-    } else if (cleanNumber.match(/^6(?:011|5)/)) {
-        return 'Discover';
-    } else {
-        return 'Unknown';
-    }
-};
-
-/**
  * Create vault token using Global Payments SDK
  */
 export const createVaultTokenWithSDK = async (data) => {
@@ -87,32 +68,29 @@ export const createVaultTokenWithSDK = async (data) => {
         if (response.responseCode === '00' && response.token) {
             // Log successful tokenization in live mode
             console.log(`🔑 PAYMENT METHOD CREATION - Attempting tokenization for card ending in ${data.cardNumber.slice(-4)}`);
-            console.log(`   📝 Card Brand: ${determineCardBrand(data.cardNumber)}`);
             console.log(`   📅 Expiry: ${data.expiryMonth}/${data.expiryYear}`);
             console.log(`   👤 Nickname: ${data.nickname || 'None'}`);
             console.log(`   ⭐ Set as Default: ${data.isDefault || false}`);
-            
+
             console.log('✅ 🟢 LIVE MODE - Payment Method Created Successfully:');
             console.log(`   ⏰ Timestamp: ${new Date().toISOString()}`);
             console.log(`   🔐 Vault Token: ${response.token}`);
-            console.log(`   💳 Card Brand: ${determineCardBrand(data.cardNumber)}`);
             console.log(`   🔢 Last 4: ${data.cardNumber.slice(-4)}`);
             console.log(`   📅 Expiry: ${data.expiryMonth}/${data.expiryYear}`);
             console.log(`   📛 Nickname: ${data.nickname || 'None'}`);
             console.log(`   ⭐ Default: ${data.isDefault || false}`);
             console.log('   📡 API Status: Connected & Working');
-            
+
             return response.token;
         } else {
             // Log failed tokenization attempt
             console.log('❌ 🔴 LIVE MODE - Payment Method Creation Failed:');
             console.log(`   ⏰ Timestamp: ${new Date().toISOString()}`);
-            console.log(`   💳 Card Brand: ${determineCardBrand(data.cardNumber)}`);
             console.log(`   🔢 Last 4: ${data.cardNumber.slice(-4)}`);
             console.log(`   📅 Expiry: ${data.expiryMonth}/${data.expiryYear}`);
             console.log(`   ❌ Error: ${response.responseMessage || 'Unknown error'}`);
             console.log('   📡 API Status: Connected but Declined');
-            
+
             throw new Error(`Tokenization failed: ${response.responseMessage || 'Unknown error'}`);
         }
     } catch (error) {
@@ -131,7 +109,6 @@ export const getCardDetailsFromToken = async (vaultToken) => {
         
         // Use a $0.01 verify to get card details without charging
         const response = await card.verify()
-            .withAmount(0.01)
             .withCurrency('USD')
             .execute();
         
