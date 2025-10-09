@@ -17,30 +17,26 @@ declare(strict_types=1);
  * @link      https://github.com/globalpayments
  */
 
-require_once 'vendor/autoload.php';
+require_once 'PaymentUtils.php';
 
-use Dotenv\Dotenv;
+// Handle CORS
+PaymentUtils::handleCORS();
+
+// Initialize SDK (loads environment variables)
+PaymentUtils::configureSdk();
+
+// Only allow GET method
+if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
+    PaymentUtils::sendErrorResponse(405, 'Method not allowed');
+}
 
 try {
-    // Load environment variables from .env file
-    $dotenv = Dotenv::createImmutable(__DIR__);
-    $dotenv->load();
+    $response = [
+        'publicApiKey' => $_ENV['PUBLIC_API_KEY'] ?? ''
+    ];
 
-    // Set response content type to JSON
-    header('Content-Type: application/json');
-
-    // Return public API key in JSON response
-    echo json_encode([
-        'success' => true,
-        'data' => [
-            'publicApiKey' => $_ENV['PUBLIC_API_KEY'],
-        ],
-    ]);
+    PaymentUtils::sendSuccessResponse($response, 'Configuration retrieved successfully');
 } catch (Exception $e) {
-    // Handle configuration errors
-    http_response_code(500);
-    echo json_encode([
-        'success' => false,
-        'message' => 'Error loading configuration: ' . $e->getMessage()
-    ]);
+    error_log('Configuration error: ' . $e->getMessage());
+    PaymentUtils::sendErrorResponse(500, 'Error loading configuration', 'CONFIG_ERROR');
 }

@@ -4,6 +4,8 @@
 *.dll
 *.so
 *.dylib
+card-payments-go
+vault-server
 
 # Test binary, built with `go test -c`
 *.test
@@ -26,3 +28,6 @@
 ._*
 .Spotlight-V100
 .Trashes
+
+## Payment Data (sensitive)
+data/*.json
