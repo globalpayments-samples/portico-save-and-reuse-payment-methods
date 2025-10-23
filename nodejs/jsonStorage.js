@@ -77,7 +77,7 @@ export async function addPaymentMethod(data) {
     // Create payment method object
     const paymentMethod = {
         id: id,
-        vaultToken: data.vaultToken,
+        storedPaymentToken: data.storedPaymentToken,
         cardBrand: data.cardBrand,
         last4: data.last4,
         expiry: data.expiry,

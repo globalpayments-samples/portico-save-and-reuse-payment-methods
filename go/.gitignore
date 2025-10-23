@@ -5,7 +5,7 @@
 *.so
 *.dylib
 card-payments-go
-vault-server
+multi-use-server
 
 # Test binary, built with `go test -c`
 *.test

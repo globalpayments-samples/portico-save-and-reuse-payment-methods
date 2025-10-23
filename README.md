@@ -1,11 +1,11 @@
-# Vault One-Click Payment System
+# Save and Reuse Payment Methods Payment System
 
-A comprehensive multi-language demonstration of vault-based one-click payment processing using the Global Payments SDK. This example showcases secure payment method storage, multi-use token creation with integrated customer data, and streamlined payment processing across multiple programming languages.
+A comprehensive multi-language demonstration of wallet one-click payment processing using the Global Payments SDK. This example showcases secure payment method storage, multi-use token creation with integrated customer data, and streamlined payment processing across multiple programming languages.
 
 ## 🚀 Features
 
 ### Core Payment Capabilities
-- **Multi-Use Token Creation** - Convert single-use tokens to vault tokens with customer data integration
+- **Multi-Use Token Creation** - Convert single-use tokens to stored payment tokens with customer data integration
 - **Payment Method Management** - Store, retrieve, edit, and manage customer payment methods securely
 - **One-Click Payment Processing** - Process immediate charges ($25) using stored payment methods
 - **Customer Data Integration** - Associate billing information directly with payment tokens
@@ -45,7 +45,7 @@ Each implementation provides identical functionality with language-specific best
 
 ### Backend Architecture
 - **RESTful API Design** - Consistent endpoints across all implementations
-- **Multi-Use Token Creation** - Secure conversion of single-use to vault tokens
+- **Multi-Use Token Creation** - Secure conversion of single-use to stored payment tokens
 - **Customer Data Storage** - Integrated billing information with payment methods
 - **Mock Mode Capability** - Simulated responses for development and testing
 
@@ -73,7 +73,7 @@ Each implementation provides identical functionality with language-specific best
 1. **Clone the repository**
    ```bash
    git clone <repository-url>
-   cd vault-one-click-payment-system
+   cd portico-save-and-reuse-payment-methods
    ```
 
 2. **Choose your implementation**
@@ -148,7 +148,7 @@ The system includes pre-filled customer information for testing:
 ### Adding Payment Methods
 1. **Customer Information** - Collect name, email, phone, and billing address
 2. **Payment Details** - Secure tokenization using Global Payments SDK
-3. **Multi-Use Token Creation** - Convert single-use token to vault token with customer data
+3. **Multi-Use Token Creation** - Convert single-use token to multi-use token with customer data
 4. **Storage** - Save payment method with optional nickname and default status
 
 ### Processing Payments

@@ -28,20 +28,20 @@ type CustomerData struct {
 
 // PaymentMethod represents a stored payment method
 type PaymentMethod struct {
-	ID           string        `json:"id"`
-	VaultToken   string        `json:"vaultToken"`
-	Type         string        `json:"type"`
-	Last4        string        `json:"last4"`
-	Brand        string        `json:"brand"`
-	Expiry       string        `json:"expiry"`
-	ExpiryMonth  string        `json:"expiryMonth"`
-	ExpiryYear   string        `json:"expiryYear"`
-	Nickname     *string       `json:"nickname,omitempty"`
-	IsDefault    bool          `json:"isDefault"`
-	MockMode     bool          `json:"mockMode"`
-	CustomerData *CustomerData `json:"customerData,omitempty"`
-	CreatedAt    time.Time     `json:"createdAt"`
-	UpdatedAt    time.Time     `json:"updatedAt"`
+	ID                   string        `json:"id"`
+	StoredPaymentToken   string        `json:"storedPaymentToken"`
+	Type                 string        `json:"type"`
+	Last4                string        `json:"last4"`
+	Brand                string        `json:"brand"`
+	Expiry               string        `json:"expiry"`
+	ExpiryMonth          string        `json:"expiryMonth"`
+	ExpiryYear           string        `json:"expiryYear"`
+	Nickname             *string       `json:"nickname,omitempty"`
+	IsDefault            bool          `json:"isDefault"`
+	MockMode             bool          `json:"mockMode"`
+	CustomerData         *CustomerData `json:"customerData,omitempty"`
+	CreatedAt            time.Time     `json:"createdAt"`
+	UpdatedAt            time.Time     `json:"updatedAt"`
 }
 
 // CardDetails represents card information from the payment form

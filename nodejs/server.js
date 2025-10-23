@@ -1,5 +1,5 @@
 /**
- * Vault One-Click Payment Processing Server - Node.js Implementation
+ * Multi-Use One-Click Payment Processing Server - Node.js Implementation
  * 
  * Complete REST API implementation with payment method management,
  * mock mode support, and comprehensive error handling.
@@ -81,7 +81,7 @@ app.get('/health', (req, res) => {
         data: {
             status: 'healthy',
             timestamp: new Date().toISOString(),
-            service: 'vault-one-click-nodejs',
+            service: 'save-reuse-payment-nodejs',
             version: '1.0.0',
             sdkStatus: sdkStatus,
             mockMode: mockModeEnabled
@@ -190,13 +190,13 @@ app.post('/payment-methods', async (req, res) => {
 
         // Check if this is a multi-use token creation with customer data
         const paymentToken = data.paymentToken;
-        const vaultToken = data.vaultToken;
+        const storedPaymentToken = data.storedPaymentToken;
 
-        // Validate required fields - either paymentToken + customerData for multi-use, or vaultToken for existing
-        if (!paymentToken && !vaultToken) {
+        // Validate required fields - either paymentToken + customerData for multi-use, or storedPaymentToken for existing
+        if (!paymentToken && !storedPaymentToken) {
             return res.status(400).json({
                 success: false,
-                message: 'Missing required payment token or vault token',
+                message: 'Missing required payment token or stored payment token',
                 errorCode: 'VALIDATION_ERROR',
                 timestamp: new Date().toISOString()
             });
@@ -284,10 +284,10 @@ async function handleEditPaymentMethod(req, res, data) {
 async function handleCreatePaymentMethod(req, res, data) {
     try {
         const paymentToken = data.paymentToken;
-        const vaultToken = data.vaultToken;
+        const storedPaymentToken = data.storedPaymentToken;
         let isUsingMockMode = mockModeEnabled;
         let cardDetails;
-        let finalToken = vaultToken;
+        let finalToken = storedPaymentToken;
 
         // Handle multi-use token creation with customer data
         if (paymentToken) {
@@ -333,23 +333,23 @@ async function handleCreatePaymentMethod(req, res, data) {
                 }
             }
         } else {
-            // Handle existing vault token (legacy flow)
-            finalToken = vaultToken;
+            // Handle existing stored payment token (legacy flow)
+            finalToken = storedPaymentToken;
 
             if (mockModeEnabled) {
                 // Use mock card details
-                cardDetails = mockResponses.getCardDetailsFromToken(vaultToken);
-                console.log(`🟡 Mock mode: Retrieved mock card details for token ${vaultToken.substring(0, 12)}...`);
+                cardDetails = mockResponses.getCardDetailsFromToken(storedPaymentToken);
+                console.log(`🟡 Mock mode: Retrieved mock card details for token ${storedPaymentToken.substring(0, 12)}...`);
             } else {
                 try {
-                    // Try to get card details from real vault token
-                    cardDetails = await paymentUtils.getCardDetailsFromToken(vaultToken);
+                    // Try to get card details from real stored payment token
+                    cardDetails = await paymentUtils.getCardDetailsFromToken(storedPaymentToken);
                     console.log(`🟢 Live mode: Retrieved card details for ${cardDetails.brand} ending in ${cardDetails.last4}`);
                 } catch (error) {
                     console.log(`❌ Live mode token lookup failed: ${error.message}`);
                     // Fall back to mock mode
                     isUsingMockMode = true;
-                    cardDetails = mockResponses.getCardDetailsFromToken(vaultToken);
+                    cardDetails = mockResponses.getCardDetailsFromToken(storedPaymentToken);
                     console.log(`🟡 Fallback to mock mode: Using mock card details`);
                 }
             }
@@ -374,7 +374,7 @@ async function handleCreatePaymentMethod(req, res, data) {
 
         // Save payment method
         const storedData = {
-            vaultToken: finalToken,
+            storedPaymentToken: finalToken,
             cardBrand: cardDetails.brand,
             last4: cardDetails.last4,
             expiry: expiry,
@@ -490,7 +490,7 @@ async function processPayment(paymentMethodId, amount, type) {
         // Process with real SDK
         try {
             const card = new CreditCardData();
-            card.token = paymentMethod.vaultToken;
+            card.token = paymentMethod.storedPaymentToken;
             
             const response = await card.charge(amount)
                 .withCurrency('USD')

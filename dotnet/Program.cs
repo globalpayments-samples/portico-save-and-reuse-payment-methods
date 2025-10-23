@@ -102,7 +102,7 @@ public class Program
                 {
                     Status = "healthy",
                     Timestamp = DateTime.UtcNow,
-                    Service = "vault-one-click-dotnet",
+                    Service = "save-reuse-payment-dotnet",
                     Version = "1.0.0"
                 },
                 Message = "System is healthy",
@@ -457,7 +457,7 @@ public class Program
 
             var storedData = new StoredPaymentMethodData
             {
-                VaultToken = finalToken,
+                StoredPaymentToken = finalToken,
                 CardBrand = multiUseTokenData.Brand,
                 Last4 = multiUseTokenData.Last4,
                 ExpiryMonth = multiUseTokenData.ExpiryMonth,
@@ -472,7 +472,7 @@ public class Program
             var response = new
             {
                 id = savedMethod.Id,
-                vaultToken = finalToken,
+                storedPaymentToken = finalToken,
                 type = "card",
                 last4 = multiUseTokenData.Last4,
                 brand = multiUseTokenData.Brand,
@@ -555,7 +555,7 @@ public class Program
             // Process with real SDK using token directly
             try
             {
-                var card = new CreditCardData { Token = paymentMethod.VaultToken };
+                var card = new CreditCardData { Token = paymentMethod.StoredPaymentToken };
                 var response = card.Charge(amount)
                     .WithCurrency("USD")
                     .WithAllowDuplicates(true)

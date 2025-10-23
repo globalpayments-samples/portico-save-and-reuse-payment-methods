@@ -78,8 +78,8 @@ public class ChargeServlet extends HttpServlet {
                 String secretApiKey = dotenv.get("SECRET_API_KEY");
                 if (secretApiKey != null && !secretApiKey.trim().isEmpty()) {
                     try {
-                        String vaultToken = (String) paymentMethod.get("vaultToken");
-                        transactionResult = PaymentUtils.processPaymentWithSDK(vaultToken, amount, currency);
+                        String storedPaymentToken = (String) paymentMethod.get("storedPaymentToken");
+                        transactionResult = PaymentUtils.processPaymentWithSDK(storedPaymentToken, amount, currency);
                     } catch (Exception e) {
                         System.err.println("❌ LIVE MODE - Payment processing failed: " + e.getMessage());
                         sendErrorResponse(response, 422, "Payment failed: " + e.getMessage(), "PAYMENT_ERROR");

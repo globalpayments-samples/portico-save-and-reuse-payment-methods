@@ -34,7 +34,7 @@ func initializeSDK() error {
 	return api.ConfigureService(config, "default")
 }
 
-// Create a new payment method (vault token)
+// Create a new payment method (stored payment token)
 func createPaymentMethod(req PaymentMethodRequest) (*PaymentMethod, error) {
 	log.Printf("Creating payment method. Mock mode: %v", mockModeEnabled)
 
@@ -115,7 +115,7 @@ func createPaymentMethodFromToken(req PaymentMethodRequest, paymentMethodID stri
 
 	paymentMethod := &PaymentMethod{
 		ID:           paymentMethodID,
-		VaultToken:   finalToken,
+		StoredPaymentToken:   finalToken,
 		Type:         "card",
 		Brand:        multiUseTokenResult.Brand,
 		Last4:        multiUseTokenResult.Last4,
@@ -172,18 +172,18 @@ func createPaymentMethodFromCardData(req PaymentMethodRequest, paymentMethodID s
 	paymentMethod.Expiry = fmt.Sprintf("%s/%s", req.ExpiryMonth, req.ExpiryYear)
 
 	if mockModeEnabled {
-		// Generate mock vault token
-		paymentMethod.VaultToken = "mock_token_" + uuid.New().String()
-		log.Printf("Generated mock vault token for card ending in %s", paymentMethod.Last4)
+		// Generate mock stored payment token
+		paymentMethod.StoredPaymentToken = "mock_token_" + uuid.New().String()
+		log.Printf("Generated mock stored payment token for card ending in %s", paymentMethod.Last4)
 	} else {
-		// Create real vault token using Global Payments SDK
-		vaultToken, err := createVaultToken(cardNumber, req.ExpiryMonth, req.ExpiryYear, req.CVV)
+		// Create real stored payment token using Global Payments SDK
+		storedPaymentToken, err := createStoredPaymentToken(cardNumber, req.ExpiryMonth, req.ExpiryYear, req.CVV)
 		if err != nil {
-			log.Printf("Error creating vault token: %v", err)
-			return nil, fmt.Errorf("failed to create vault token: %v", err)
+			log.Printf("Error creating stored payment token: %v", err)
+			return nil, fmt.Errorf("failed to create stored payment token: %v", err)
 		}
-		paymentMethod.VaultToken = vaultToken
-		log.Printf("Created live vault token for card ending in %s", paymentMethod.Last4)
+		paymentMethod.StoredPaymentToken = storedPaymentToken
+		log.Printf("Created live stored payment token for card ending in %s", paymentMethod.Last4)
 	}
 
 	// Handle default payment method
@@ -334,8 +334,8 @@ func processPayment(paymentMethodID string, amount float64, transactionType stri
 
 	ctx := context.Background()
 	
-	// Create card from vault token
-	card := paymentmethods.NewCreditCardDataWithToken(paymentMethod.VaultToken)
+	// Create card from stored payment token
+	card := paymentmethods.NewCreditCardDataWithToken(paymentMethod.StoredPaymentToken)
 	
 	// Configure transaction
 	amountStr := fmt.Sprintf("%.2f", amount)
@@ -394,8 +394,8 @@ func processPayment(paymentMethodID string, amount float64, transactionType stri
 	return result, nil
 }
 
-// Create vault token using SDK
-func createVaultToken(cardNumber, expiryMonth, expiryYear, cvv string) (string, error) {
+// Create stored payment token using SDK
+func createStoredPaymentToken(cardNumber, expiryMonth, expiryYear, cvv string) (string, error) {
 	err := initializeSDK()
 	if err != nil {
 		return "", err
@@ -562,15 +562,15 @@ func createMultiUseTokenWithCustomer(paymentToken string, customerData *Customer
 	return result, nil
 }
 
-// Get card details from vault token using Global Payments SDK
-func getCardDetailsFromToken(vaultToken string) (*MultiUseTokenResult, error) {
+// Get card details from stored payment token using Global Payments SDK
+func getCardDetailsFromToken(storedPaymentToken string) (*MultiUseTokenResult, error) {
 	err := initializeSDK()
 	if err != nil {
 		return nil, err
 	}
 
-	// Create credit card data with the vault token
-	card := paymentmethods.NewCreditCardDataWithToken(vaultToken)
+	// Create credit card data with the stored payment token
+	card := paymentmethods.NewCreditCardDataWithToken(storedPaymentToken)
 
 	ctx := context.Background()
 
@@ -618,7 +618,7 @@ func getCardDetailsFromToken(vaultToken string) (*MultiUseTokenResult, error) {
 	}
 
 	if result.MultiUseToken == "" {
-		result.MultiUseToken = vaultToken // fallback to original token
+		result.MultiUseToken = storedPaymentToken // fallback to original token
 	}
 
 	return result, nil

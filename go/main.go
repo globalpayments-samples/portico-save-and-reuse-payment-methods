@@ -1,4 +1,4 @@
-// Package main implements a comprehensive vault-based payment processing server
+// Package main implements a comprehensive saved payment payment processing server
 // using the Global Payments SDK. It provides secure payment method storage,
 // processing, and mock/live mode functionality.
 package main
@@ -65,7 +65,7 @@ func main() {
 
 	// Start server
 	port := getEnv("PORT", "8000")
-	fmt.Printf("🚀 Go Vault Payment Server starting on http://localhost:%s\n", port)
+	fmt.Printf("🚀 Go Multi-Use Payment Server starting on http://localhost:%s\n", port)
 	fmt.Printf("📊 Mock Mode: %v\n", mockModeEnabled)
 	fmt.Printf("🔧 Environment: %s\n", getEnv("APP_ENV", "development"))
 	
