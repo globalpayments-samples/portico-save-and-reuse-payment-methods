@@ -1,12 +1,11 @@
-# Go Vault One-Click Payment System
+# Go Save and Reuse Payment Methods Payment System
 
-This example demonstrates a comprehensive vault one-click payment system using Go and the Global Payments SDK. It includes payment method management, secure tokenization, mock testing capabilities, and a complete web interface.
+This example demonstrates a comprehensive save and reuse payment methods payment system using Go and the Global Payments SDK. It includes payment method management, secure tokenization, mock testing capabilities, and a complete web interface.
 
 ## Features
 
 - **Payment Method Management** - Store, retrieve, and manage customer payment methods securely
-- **Vault Tokenization** - Securely tokenize and store payment methods using Global Payments vault
-- **Multi-Use Token Creation** - Convert single-use tokens to multi-use vault tokens with customer data
+- **Multi-Use Token Creation** - Convert single-use tokens to multi-use stored payment tokens with customer data
 - **One-Click Payments** - Process charges using stored multi-use payment methods
 - **Mock Mode** - Test payment flows with simulated responses without hitting live APIs
 - **Comprehensive UI** - Complete web interface with payment method management and transaction processing
@@ -66,7 +65,7 @@ System health check endpoint.
   "data": {
     "status": "healthy",
     "timestamp": "2024-09-08T14:00:00Z",
-    "service": "vault-one-click-go",
+    "service": "save-reuse-payment-go",
     "version": "1.0.0"
   },
   "message": "System is healthy"
@@ -162,7 +161,7 @@ Create multi-use token with customer data or edit an existing payment method.
   "success": true,
   "data": {
     "id": "pm_123456789",
-    "vaultToken": "vault_abc123def456",
+    "storedPaymentToken": "store_payment_abc123def456",
     "type": "card",
     "last4": "0016",
     "brand": "Visa",
@@ -288,10 +287,10 @@ All test cards use:
 - Implements proper SDK error handling and response processing
 
 ### Payment Processing
-1. **Multi-Use Tokenization**: Convert single-use tokens to multi-use vault tokens with customer data using Global Payments SDK
+1. **Multi-Use Tokenization**: Convert single-use tokens to multi-use stored payment tokens with customer data using Global Payments SDK
 2. **Customer Integration**: Associate customer billing information with payment methods for enhanced context
 3. **Storage**: Store enhanced payment method metadata with customer context in JSON format with atomic file operations
-4. **Processing**: Use multi-use vault tokens for immediate payment charges
+4. **Processing**: Use multi-use stored payment tokens for immediate payment charges
 5. **Error Handling**: Comprehensive error handling with meaningful HTTP status codes
 6. **Logging**: Standard Go logging for development and debugging
 
@@ -310,11 +309,11 @@ All test cards use:
 
 ## Multi-Use Token Implementation
 
-The Go implementation creates enhanced vault tokens that combine Global Payments tokenization with customer data management:
+The Go implementation creates enhanced stored payment tokens that combine Global Payments tokenization with customer data management:
 
 ### Key Features
 
-- **Enhanced Vault Tokens**: Converts single-use payment tokens into multi-use vault tokens
+- **Enhanced Multi-use Tokens**: Converts single-use payment tokens into multi-use stored payment tokens
 - **Customer Data Integration**: Associates customer billing information with payment methods
 - **Concurrent Processing**: Efficient goroutine-based handling for multi-use token creation
 - **Type Safety**: Strongly-typed Go structs for all token operations
@@ -335,7 +334,7 @@ type CustomerData struct {
     Country       string `json:"country"`
 }
 
-// CreateMultiUseTokenWithCustomer creates vault token with customer data
+// CreateMultiUseTokenWithCustomer creates multi-use token with customer data
 func CreateMultiUseTokenWithCustomer(singleUseToken string, customerData CustomerData) (*entities.Customer, error) {
     customer := entities.NewCustomer()
     customer.FirstName = customerData.FirstName
@@ -386,20 +385,20 @@ go run *.go
 
 ### Production Build
 ```bash
-go build -o vault-server *.go
-./vault-server
+go build -o save-reuse-server *.go
+./save-reuse-server
 ```
 
 ### Cross Compilation
 ```bash
 # Linux
-GOOS=linux GOARCH=amd64 go build -o vault-server-linux *.go
+GOOS=linux GOARCH=amd64 go build -o save-reuse-server-linux *.go
 
 # Windows
-GOOS=windows GOARCH=amd64 go build -o vault-server-windows.exe *.go
+GOOS=windows GOARCH=amd64 go build -o save-reuse-server-windows.exe *.go
 
 # macOS
-GOOS=darwin GOARCH=amd64 go build -o vault-server-macos *.go
+GOOS=darwin GOARCH=amd64 go build -o save-reuse-server-macos *.go
 ```
 
 ### Docker Support
@@ -408,14 +407,14 @@ FROM golang:1.21-alpine AS builder
 WORKDIR /app
 COPY . .
 RUN go mod download
-RUN go build -o vault-server *.go
+RUN go build -o save-reuse-server *.go
 
 FROM alpine:latest
 WORKDIR /app
-COPY --from=builder /app/vault-server .
+COPY --from=builder /app/save-reuse-server .
 COPY --from=builder /app/static ./static
 EXPOSE 8000
-CMD ["./vault-server"]
+CMD ["./save-reuse-server"]
 ```
 
 ## Module Dependencies

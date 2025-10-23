@@ -53,9 +53,9 @@ public class PaymentUtils {
     }
     
     /**
-     * Create vault token using Global Payments SDK
+     * Create stored payment token using Global Payments SDK
      */
-    public static String createVaultTokenWithSDK(Map<String, Object> data) throws Exception {
+    public static String createStoredPaymentTokenWithSDK(Map<String, Object> data) throws Exception {
         try {
             CreditCardData card = new CreditCardData();
             card.setNumber((String) data.get("cardNumber"));
@@ -81,7 +81,7 @@ public class PaymentUtils {
                 // Log successful tokenization in live mode
                 System.out.println("✅ LIVE MODE - Tokenization Success:");
                 System.out.println("   Timestamp: " + LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
-                System.out.println("   Vault Token: " + token);
+                System.out.println("   Stored Payment Token: " + token);
                 System.out.println("   Last 4: " + ((String) data.get("cardNumber")).replaceAll("\\s+", "").substring(((String) data.get("cardNumber")).replaceAll("\\s+", "").length() - 4));
                 System.out.println("   Expiry: " + data.get("expiryMonth") + "/" + data.get("expiryYear"));
                 return token;
@@ -95,12 +95,12 @@ public class PaymentUtils {
     }
     
     /**
-     * Get card details from vault token using Global Payments SDK
+     * Get card details from stored payment token using Global Payments SDK
      */
-    public static Map<String, String> getCardDetailsFromToken(String vaultToken) throws Exception {
+    public static Map<String, String> getCardDetailsFromToken(String storedPaymentToken) throws Exception {
         try {
             CreditCardData card = new CreditCardData();
-            card.setToken(vaultToken);
+            card.setToken(storedPaymentToken);
             
             // Use verify to get card details without charging
             Transaction response = card.verify()
@@ -121,7 +121,7 @@ public class PaymentUtils {
                 cardDetails.put("last4", last4);
                 cardDetails.put("expiryMonth", expiryMonth);
                 cardDetails.put("expiryYear", expiryYear);
-                cardDetails.put("token", vaultToken);
+                cardDetails.put("token", storedPaymentToken);
                 
                 return cardDetails;
             } else {
@@ -162,10 +162,10 @@ public class PaymentUtils {
     /**
      * Process payment using Global Payments SDK
      */
-    public static Map<String, Object> processPaymentWithSDK(String vaultToken, BigDecimal amount, String currency) throws Exception {
+    public static Map<String, Object> processPaymentWithSDK(String storedPaymentToken, BigDecimal amount, String currency) throws Exception {
         try {
             CreditCardData card = new CreditCardData();
-            card.setToken(vaultToken);
+            card.setToken(storedPaymentToken);
 
             Transaction response = card.charge(amount)
                     .withCurrency(currency)
@@ -173,14 +173,14 @@ public class PaymentUtils {
 
             if ("00".equals(response.getResponseCode())) {
                 // Log successful payment in live mode
-                System.out.println("💰 PAYMENT PROCESSING - Charging with token: " + vaultToken.substring(0, Math.min(8, vaultToken.length())) + "...");
+                System.out.println("💰 PAYMENT PROCESSING - Charging with token: " + storedPaymentToken.substring(0, Math.min(8, storedPaymentToken.length())) + "...");
                 System.out.println("   💵 Amount: $" + amount + " " + currency);
                 
                 System.out.println("✅ 🟢 LIVE MODE - Payment Charged Successfully:");
                 System.out.println("   ⏰ Timestamp: " + LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
                 System.out.println("   🆔 Transaction ID: " + (response.getTransactionId() != null ? response.getTransactionId() : "N/A"));
                 System.out.println("   💵 Amount: $" + amount + " " + currency);
-                System.out.println("   🔐 Vault Token: " + vaultToken.substring(0, Math.min(8, vaultToken.length())) + "...");
+                System.out.println("   🔐 Stored Payment Token: " + storedPaymentToken.substring(0, Math.min(8, storedPaymentToken.length())) + "...");
                 System.out.println("   📋 Response Code: " + response.getResponseCode());
                 System.out.println("   💬 Response Message: " + (response.getResponseMessage() != null ? response.getResponseMessage() : "Approved"));
                 System.out.println("   🔑 Auth Code: " + (response.getAuthorizationCode() != null ? response.getAuthorizationCode() : "N/A"));
@@ -207,7 +207,7 @@ public class PaymentUtils {
                 System.out.println("❌ 🔴 LIVE MODE - Payment Charge Failed:");
                 System.out.println("   ⏰ Timestamp: " + LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
                 System.out.println("   💵 Amount: $" + amount + " " + currency);
-                System.out.println("   🔐 Vault Token: " + vaultToken.substring(0, Math.min(8, vaultToken.length())) + "...");
+                System.out.println("   🔐 Stored Payment Token: " + storedPaymentToken.substring(0, Math.min(8, storedPaymentToken.length())) + "...");
                 System.out.println("   📋 Response Code: " + response.getResponseCode());
                 System.out.println("   ❌ Error: " + (response.getResponseMessage() != null ? response.getResponseMessage() : "Unknown error"));
                 System.out.println("   📡 API Status: Connected but Declined");

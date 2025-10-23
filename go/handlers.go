@@ -198,7 +198,7 @@ func paymentMethodsHandler(w http.ResponseWriter, r *http.Request) {
 		// Format response to match PHP structure
 		responseData := map[string]interface{}{
 			"id":        method.ID,
-			"vaultToken": method.VaultToken,
+			"storedPaymentToken": method.StoredPaymentToken,
 			"type":      method.Type,
 			"last4":     method.Last4,
 			"brand":     method.Brand,

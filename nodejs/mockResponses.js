@@ -49,16 +49,16 @@ export const getDeclineResponse = (reason) => {
 };
 
 /**
- * Generate mock vault token
+ * Generate mock stored payment token
  */
-export const generateMockVaultToken = () => {
+export const generateMockStoredPaymentToken = () => {
     return `token_${Date.now()}_${Math.random().toString(36).substr(2, 16)}`;
 };
 
 /**
- * Get card details from mock vault token
+ * Get card details from mock stored payment token
  */
-export const getCardDetailsFromToken = (vaultToken) => {
+export const getCardDetailsFromToken = (storedPaymentToken) => {
     // Extract mock data from token pattern or use defaults for demo
     const mockDetails = {
         brand: 'Visa',
@@ -68,7 +68,7 @@ export const getCardDetailsFromToken = (vaultToken) => {
     };
 
     // If token contains identifiable patterns, use them
-    const tokenLower = vaultToken.toLowerCase();
+    const tokenLower = storedPaymentToken.toLowerCase();
     if (tokenLower.includes('visa')) {
         mockDetails.brand = 'Visa';
         mockDetails.last4 = '0016';

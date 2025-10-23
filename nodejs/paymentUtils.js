@@ -43,9 +43,9 @@ export const sanitizePostalCode = (postalCode) => {
 };
 
 /**
- * Create vault token using Global Payments SDK
+ * Create stored payment token using Global Payments SDK
  */
-export const createVaultTokenWithSDK = async (data) => {
+export const createStoredPaymentTokenWithSDK = async (data) => {
     try {
         const card = new CreditCardData();
         card.number = data.cardNumber;
@@ -74,7 +74,7 @@ export const createVaultTokenWithSDK = async (data) => {
 
             console.log('✅ 🟢 LIVE MODE - Payment Method Created Successfully:');
             console.log(`   ⏰ Timestamp: ${new Date().toISOString()}`);
-            console.log(`   🔐 Vault Token: ${response.token}`);
+            console.log(`   🔐 Stored Payment Token: ${response.token}`);
             console.log(`   🔢 Last 4: ${data.cardNumber.slice(-4)}`);
             console.log(`   📅 Expiry: ${data.expiryMonth}/${data.expiryYear}`);
             console.log(`   📛 Nickname: ${data.nickname || 'None'}`);
@@ -100,12 +100,12 @@ export const createVaultTokenWithSDK = async (data) => {
 };
 
 /**
- * Get card details from vault token using Global Payments SDK
+ * Get card details from stored payment token using Global Payments SDK
  */
-export const getCardDetailsFromToken = async (vaultToken) => {
+export const getCardDetailsFromToken = async (storedPaymentToken) => {
     try {
         const card = new CreditCardData();
-        card.token = vaultToken;
+        card.token = storedPaymentToken;
         
         // Use a $0.01 verify to get card details without charging
         const response = await card.verify()
@@ -126,7 +126,7 @@ export const getCardDetailsFromToken = async (vaultToken) => {
                 last4: last4,
                 expiryMonth: expiryMonth,
                 expiryYear: expiryYear,
-                token: vaultToken
+                token: storedPaymentToken
             };
         } else {
             throw new Error(`Token verification failed: ${response.responseMessage || 'Unknown error'}`);
@@ -164,10 +164,10 @@ export const determineCardBrandFromType = (cardType) => {
 /**
  * Process payment using Global Payments SDK
  */
-export const processPaymentWithSDK = async (vaultToken, amount, currency) => {
+export const processPaymentWithSDK = async (storedPaymentToken, amount, currency) => {
     try {
         const card = new CreditCardData();
-        card.token = vaultToken;
+        card.token = storedPaymentToken;
 
         const response = await card.charge(amount)
             .withCurrency(currency)
@@ -175,14 +175,14 @@ export const processPaymentWithSDK = async (vaultToken, amount, currency) => {
 
         if (response.responseCode === '00') {
             // Log successful payment in live mode
-            console.log(`💰 PAYMENT PROCESSING - Charging with token: ${vaultToken.substring(0, 8)}...`);
+            console.log(`💰 PAYMENT PROCESSING - Charging with token: ${storedPaymentToken.substring(0, 8)}...`);
             console.log(`   💵 Amount: $${amount.toFixed(2)} ${currency}`);
             
             console.log('✅ 🟢 LIVE MODE - Payment Charged Successfully:');
             console.log(`   ⏰ Timestamp: ${new Date().toISOString()}`);
             console.log(`   🆔 Transaction ID: ${response.transactionId || 'N/A'}`);
             console.log(`   💵 Amount: $${amount.toFixed(2)} ${currency}`);
-            console.log(`   🔐 Vault Token: ${vaultToken.substring(0, 8)}...`);
+            console.log(`   🔐 Stored Payment Token: ${storedPaymentToken.substring(0, 8)}...`);
             console.log(`   📋 Response Code: ${response.responseCode}`);
             console.log(`   💬 Response Message: ${response.responseMessage || 'Approved'}`);
             console.log(`   🔑 Auth Code: ${response.authorizationCode || 'N/A'}`);
@@ -207,7 +207,7 @@ export const processPaymentWithSDK = async (vaultToken, amount, currency) => {
             console.log('❌ 🔴 LIVE MODE - Payment Charge Failed:');
             console.log(`   ⏰ Timestamp: ${new Date().toISOString()}`);
             console.log(`   💵 Amount: $${amount.toFixed(2)} ${currency}`);
-            console.log(`   🔐 Vault Token: ${vaultToken.substring(0, 8)}...`);
+            console.log(`   🔐 Stored Payment Token: ${storedPaymentToken.substring(0, 8)}...`);
             console.log(`   📋 Response Code: ${response.responseCode}`);
             console.log(`   ❌ Error: ${response.responseMessage || 'Unknown error'}`);
             console.log('   📡 API Status: Connected but Declined');

@@ -20,8 +20,8 @@ import java.util.stream.Collectors;
  * Payment Methods Endpoint
  * 
  * GET /payment-methods - Retrieve saved payment methods
- * POST /payment-methods - Create new payment method (vault token) OR edit existing payment method
- *                         - Create: Requires vaultToken (+ optional nickname, isDefault)
+ * POST /payment-methods - Create new payment method (stored payment token) OR edit existing payment method
+ *                         - Create: Requires storedPaymentToken (+ optional nickname, isDefault)
  *                         - Edit: Requires id (+ optional nickname, isDefault) - only nickname and default status can be edited
  */
 @WebServlet(name = "PaymentMethodsServlet", urlPatterns = {"/payment-methods"})
@@ -81,11 +81,11 @@ public class PaymentMethodsServlet extends HttpServlet {
             
             // Check if this is a multi-use token creation with customer data
             String paymentToken = (String) data.get("paymentToken");
-            String vaultToken = (String) data.get("vaultToken");
+            String storedPaymentToken = (String) data.get("storedPaymentToken");
 
-            // Validate required fields - either paymentToken + customerData for multi-use, or vaultToken for existing
-            if (paymentToken == null && vaultToken == null) {
-                sendErrorResponse(response, 400, "Missing required payment token or vault token", "VALIDATION_ERROR");
+            // Validate required fields - either paymentToken + customerData for multi-use, or storedPaymentToken for existing
+            if (paymentToken == null && storedPaymentToken == null) {
+                sendErrorResponse(response, 400, "Missing required payment token or stored payment token", "VALIDATION_ERROR");
                 return;
             }
 
@@ -94,7 +94,7 @@ public class PaymentMethodsServlet extends HttpServlet {
             
             boolean mockMode = false;
             Map<String, String> cardDetails = null;
-            String finalToken = vaultToken;
+            String finalToken = storedPaymentToken;
 
             // Handle multi-use token creation with customer data
             if (paymentToken != null) {
@@ -148,26 +148,26 @@ public class PaymentMethodsServlet extends HttpServlet {
                     }
                 }
             } else {
-                // Handle existing vault token (legacy flow)
-                finalToken = vaultToken;
+                // Handle existing stored payment token (legacy flow)
+                finalToken = storedPaymentToken;
 
                 // Check if mock mode is enabled globally
                 if (MockModeServlet.isMockModeEnabled()) {
                     mockMode = true;
-                    cardDetails = MockResponses.getCardDetailsFromToken(vaultToken);
-                    System.out.println("🟡 MOCK MODE - Retrieved mock card details for token " + vaultToken.substring(0, Math.min(12, vaultToken.length())) + "...");
+                    cardDetails = MockResponses.getCardDetailsFromToken(storedPaymentToken);
+                    System.out.println("🟡 MOCK MODE - Retrieved mock card details for token " + storedPaymentToken.substring(0, Math.min(12, storedPaymentToken.length())) + "...");
                 } else {
-                    // Try to get card details from real vault token
+                    // Try to get card details from real stored payment token
                     String secretApiKey = dotenv.get("SECRET_API_KEY");
                     if (secretApiKey != null && !secretApiKey.trim().isEmpty()) {
                         try {
-                            cardDetails = PaymentUtils.getCardDetailsFromToken(vaultToken);
+                            cardDetails = PaymentUtils.getCardDetailsFromToken(storedPaymentToken);
                             System.out.println("🟢 LIVE MODE - Retrieved card details for " + cardDetails.get("brand") + " ending in " + cardDetails.get("last4"));
                         } catch (Exception e) {
                             System.err.println("❌ LIVE MODE - Token lookup failed: " + e.getMessage());
                             // Fall back to mock mode
                             mockMode = true;
-                            cardDetails = MockResponses.getCardDetailsFromToken(vaultToken);
+                            cardDetails = MockResponses.getCardDetailsFromToken(storedPaymentToken);
                             System.out.println("🟡 Fallback to mock mode: Using mock card details");
                         }
                     } else {
@@ -188,7 +188,7 @@ public class PaymentMethodsServlet extends HttpServlet {
             String expiry = cardDetails.get("expiryMonth") + "/" + cardDetails.get("expiryYear");
 
             Map<String, Object> paymentMethodData = new HashMap<>();
-            paymentMethodData.put("vaultToken", finalToken);
+            paymentMethodData.put("storedPaymentToken", finalToken);
             paymentMethodData.put("cardBrand", cardDetails.get("brand"));
             paymentMethodData.put("last4", cardDetails.get("last4"));
             paymentMethodData.put("expiry", expiry);

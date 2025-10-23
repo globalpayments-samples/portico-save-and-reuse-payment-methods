@@ -125,9 +125,9 @@ public static class PaymentUtils
     }
 
     /// <summary>
-    /// Get card details from vault token using Global Payments SDK
+    /// Get card details from stored payment token using Global Payments SDK
     /// </summary>
-    public static async Task<MultiUseTokenResult> GetCardDetailsFromTokenAsync(string vaultToken)
+    public static async Task<MultiUseTokenResult> GetCardDetailsFromTokenAsync(string storedPaymentToken)
     {
         return await Task.Run(() =>
         {
@@ -135,7 +135,7 @@ public static class PaymentUtils
             {
                 var card = new CreditCardData
                 {
-                    Token = vaultToken
+                    Token = storedPaymentToken
                 };
 
                 var response = card.Verify()
@@ -176,18 +176,18 @@ public static class PaymentUtils
     /// <summary>
     /// Process payment using Global Payments SDK
     /// </summary>
-    public static async Task<PaymentResponse> ProcessPaymentWithSdkAsync(string vaultToken, decimal amount, string currency)
+    public static async Task<PaymentResponse> ProcessPaymentWithSdkAsync(string storedPaymentToken, decimal amount, string currency)
     {
         return await Task.Run(() =>
         {
             try
             {
-                Console.WriteLine($"💰 PAYMENT PROCESSING - Charging with token: {vaultToken[..8]}...");
+                Console.WriteLine($"💰 PAYMENT PROCESSING - Charging with token: {storedPaymentToken[..8]}...");
                 Console.WriteLine($"   💵 Amount: ${amount} {currency}");
 
                 var card = new CreditCardData
                 {
-                    Token = vaultToken
+                    Token = storedPaymentToken
                 };
 
                 var response = card.Charge(amount)
@@ -201,7 +201,7 @@ public static class PaymentUtils
                     Console.WriteLine($"   ⏰ Timestamp: {DateTime.UtcNow:yyyy-MM-ddTHH:mm:ss}");
                     Console.WriteLine($"   🆔 Transaction ID: {response.TransactionId ?? "N/A"}");
                     Console.WriteLine($"   💵 Amount: ${amount} {currency}");
-                    Console.WriteLine($"   🔐 Vault Token: {vaultToken[..8]}...");
+                    Console.WriteLine($"   🔐 Stored Payment Token: {storedPaymentToken[..8]}...");
                     Console.WriteLine($"   📋 Response Code: {response.ResponseCode}");
                     Console.WriteLine($"   💬 Response Message: {response.ResponseMessage ?? "Approved"}");
                     Console.WriteLine($"   🔑 Auth Code: {response.AuthorizationCode ?? "N/A"}");
@@ -230,7 +230,7 @@ public static class PaymentUtils
                     Console.WriteLine($"❌ 🔴 LIVE MODE - Payment Charge Failed:");
                     Console.WriteLine($"   ⏰ Timestamp: {DateTime.UtcNow:yyyy-MM-ddTHH:mm:ss}");
                     Console.WriteLine($"   💵 Amount: ${amount} {currency}");
-                    Console.WriteLine($"   🔐 Vault Token: {vaultToken[..8]}...");
+                    Console.WriteLine($"   🔐 Stored Payment Token: {storedPaymentToken[..8]}...");
                     Console.WriteLine($"   📋 Response Code: {response.ResponseCode}");
                     Console.WriteLine($"   ❌ Error: {response.ResponseMessage ?? "Unknown error"}");
                     Console.WriteLine($"   📡 API Status: Connected but Declined");
@@ -243,7 +243,7 @@ public static class PaymentUtils
                 Console.Error.WriteLine($"❌ 🔴 LIVE MODE - Payment Processing Error:");
                 Console.Error.WriteLine($"   ⏰ Timestamp: {DateTime.UtcNow:yyyy-MM-ddTHH:mm:ss}");
                 Console.Error.WriteLine($"   💵 Amount: ${amount} {currency}");
-                Console.Error.WriteLine($"   🔐 Vault Token: {vaultToken[..8]}...");
+                Console.Error.WriteLine($"   🔐 Stored Payment Token: {storedPaymentToken[..8]}...");
                 Console.Error.WriteLine($"   ❌ SDK Error: {ex.Message}");
                 Console.Error.WriteLine($"   📡 API Status: Connection Failed");
                 Console.Error.WriteLine($"   🚫 NO FALLBACK - Error will be returned to user");
