@@ -15,7 +15,7 @@
   "tasks": {
     "start": {
       "name": "start",
-      "command": "go run main.go",
+      "command": "go run .",
       "runAtStart": true,
       "preview": {
         "port": 8000
