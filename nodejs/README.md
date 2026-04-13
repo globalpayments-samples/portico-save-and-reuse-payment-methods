@@ -463,3 +463,13 @@ Or for specific modules:
 ```bash
 DEBUG=express:* node server.js
 ```
+
+---
+
+## Resources
+
+- [Parent Project README](../README.md)
+- [Global Payments Developer Portal](https://developer.globalpayments.com/)
+- [API Reference](https://developer.globalpayments.com/api/references-overview)
+- [Node.js SDK](https://github.com/globalpayments/node-sdk)
+- [Test Cards](https://developer.globalpayments.com/resources/test-cards)

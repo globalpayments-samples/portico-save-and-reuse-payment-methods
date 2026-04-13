@@ -478,3 +478,12 @@ For high-traffic deployments:
 export GOMAXPROCS=4  # Set to number of CPU cores
 export GOGC=100      # Adjust garbage collection frequency
 ```
+
+---
+
+## Resources
+
+- [Parent Project README](../README.md)
+- [Global Payments Developer Portal](https://developer.globalpayments.com/)
+- [API Reference](https://developer.globalpayments.com/api/references-overview)
+- [Test Cards](https://developer.globalpayments.com/resources/test-cards)
