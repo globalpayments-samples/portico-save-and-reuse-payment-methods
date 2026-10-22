@@ -4,7 +4,7 @@ A PHP-based payment system that creates multi-use tokens with customer data for 
 
 ## Requirements
 
-- PHP 7.4 or later
+- PHP 8.2.35+, 8.3.36+, 8.4.27+, or 8.5.12+ for the web server
 - Composer
 - Global Payments account and API credentials (optional - includes mock mode)
 
@@ -46,7 +46,7 @@ A PHP-based payment system that creates multi-use tokens with customer data for 
    ```
    Or manually:
    ```bash
-   php -S localhost:8000
+   ./run.sh
    ```
 
 ## How It Works
@@ -263,7 +263,7 @@ Multi-use tokens support various payment scenarios:
 ### Common Issues
 
 **Setup Issues**:
-- Ensure PHP 7.4+ is installed: `php --version`
+- Ensure PHP 8.2.35+, 8.3.36+, 8.4.27+, or 8.5.12+ is installed: `php --version`
 - Run `composer install` to install dependencies
 - Set up `.env` file with Global Payments credentials (optional for mock mode)
 

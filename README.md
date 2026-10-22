@@ -100,7 +100,7 @@ Each implementation provides identical functionality with language-specific best
    npm install && npm start
 
    # PHP
-   composer install && php -S localhost:8000
+   cd php && ./run.sh
 
    # Java
    mvn clean compile cargo:run
