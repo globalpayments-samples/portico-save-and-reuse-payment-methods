@@ -33,7 +33,7 @@ Each implementation provides identical functionality with language-specific best
 | **[Node.js](./nodejs/)** - ([Preview](https://githubbox.com/globalpayments-samples/portico-save-and-reuse-payment-methods/tree/main/nodejs)) | Express.js | Node.js 18+, npm | ✅ Complete |
 | **[Java](./java/)** - ([Preview](https://githubbox.com/globalpayments-samples/portico-save-and-reuse-payment-methods/tree/main/java)) | Jakarta EE | Java 11+, Maven | ✅ Complete |
 | **[Go](./go/)** - ([Preview](https://githubbox.com/globalpayments-samples/portico-save-and-reuse-payment-methods/tree/main/go)) | Native Go | Go 1.21+ | ✅ Complete |
-| **[.NET](./dotnet/)** - ([Preview](https://githubbox.com/globalpayments-samples/portico-save-and-reuse-payment-methods/tree/main/dotnet)) | ASP.NET Core | .NET 9.0+ | ✅ Complete |
+| **[.NET](./dotnet/)** - ([Preview](https://githubbox.com/globalpayments-samples/portico-save-and-reuse-payment-methods/tree/main/dotnet)) | ASP.NET Core | .NET 10.0+ | ✅ Complete |
 
 ## 🏗️ Architecture Overview
 
