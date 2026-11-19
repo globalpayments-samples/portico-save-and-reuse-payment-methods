@@ -7,6 +7,7 @@
 
 import express from 'express';
 import * as dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
 import {
     ServicesContainer,
     PorticoConfig,
@@ -31,7 +32,11 @@ const port = process.env.PORT || 8000;
 let mockModeEnabled = false;
 
 // Configure middleware
-app.use(express.static('.')); // Serve static files
+// Serve only the frontend page, never the server's own files
+const indexPath = fileURLToPath(new URL('./index.html', import.meta.url));
+app.get(['/', '/index.html'], (req, res) => {
+    res.sendFile(indexPath);
+});
 app.use(express.urlencoded({ extended: true })); // Parse form data
 app.use(express.json()); // Parse JSON requests
 
