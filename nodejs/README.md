@@ -13,7 +13,7 @@ This example demonstrates a comprehensive save and reuse payment methods payment
 
 ## Requirements
 
-- Node.js 18.x or later
+- Node.js 24.x or later
 - npm (Node Package Manager) 8.x or later
 - Global Payments account and API credentials
 
@@ -268,7 +268,7 @@ All test cards use:
 - **Async/Await**: Modern JavaScript with proper error handling
 - **CORS Support**: Cross-Origin Resource Sharing for frontend integration
 - **JSON Parsing**: Built-in JSON body parsing for API requests
-- **Static Files**: Serves web interface from root directory
+- **Static Files**: Serves the web interface (index.html) only
 
 ### SDK Configuration
 - Uses Global Payments Node.js SDK with proper configuration
@@ -395,7 +395,7 @@ npm run lint    # Run ESLint (if configured)
 ### Common Issues
 
 **Node.js Version Issues**:
-- Ensure Node.js 18.x or later is installed
+- Ensure Node.js 24.x or later is installed
 - Check version with `node --version`
 - Update npm with `npm install -g npm@latest`
 
@@ -443,7 +443,7 @@ npm run lint    # Run ESLint (if configured)
 
 **Express.js Issues**:
 - Check for middleware conflicts or ordering issues
-- Verify Express static file serving configuration
+- Verify the index.html route in server.js
 - Ensure body-parser middleware is properly configured
 - Check for route conflicts or incorrect HTTP methods
 

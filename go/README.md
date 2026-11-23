@@ -13,7 +13,7 @@ This example demonstrates a comprehensive save and reuse payment methods payment
 
 ## Requirements
 
-- Go 1.21 or later
+- Go 1.26 or later
 - Global Payments account and API credentials
 
 ## Project Structure
@@ -403,7 +403,7 @@ GOOS=darwin GOARCH=amd64 go build -o save-reuse-server-macos *.go
 
 ### Docker Support
 ```dockerfile
-FROM golang:1.21-alpine AS builder
+FROM golang:1.26-alpine AS builder
 WORKDIR /app
 COPY . .
 RUN go mod download
@@ -430,7 +430,7 @@ The Go module uses the following key dependencies:
 ### Common Issues
 
 **Go Version Issues**:
-- Ensure Go 1.21 or later is installed
+- Ensure Go 1.26 or later is installed
 - Check version with `go version`
 - Update Go from https://golang.org/dl/
 
