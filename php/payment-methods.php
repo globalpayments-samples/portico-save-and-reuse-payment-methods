@@ -58,7 +58,7 @@ try {
             
             // Prepare update data (only editable fields)
             $updateData = [];
-            if (isset($data['nickname'])) {
+            if (array_key_exists('nickname', $data)) {
                 $updateData['nickname'] = $data['nickname'];
             }
             if (isset($data['isDefault'])) {

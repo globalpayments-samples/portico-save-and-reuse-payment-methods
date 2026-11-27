@@ -279,7 +279,9 @@ public class PaymentMethodsServlet extends HttpServlet {
 
             // Update the payment method
             Map<String, Object> updateData = new HashMap<>();
-            updateData.put("nickname", data.get("nickname"));
+            if (data.containsKey("nickname")) {
+                updateData.put("nickname", data.get("nickname"));
+            }
             updateData.put("isDefault", data.get("isDefault"));
             
             JsonStorage.updatePaymentMethod(id, updateData);

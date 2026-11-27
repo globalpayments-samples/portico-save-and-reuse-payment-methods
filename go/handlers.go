@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -145,9 +146,17 @@ func paymentMethodsHandler(w http.ResponseWriter, r *http.Request) {
 
 	case "POST":
 		var req PaymentMethodRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		body, err := io.ReadAll(r.Body)
+		if err == nil {
+			err = json.Unmarshal(body, &req)
+		}
+		if err != nil {
 			sendErrorResponse(w, http.StatusBadRequest, "Invalid request body", "INVALID_JSON")
 			return
+		}
+		var fields map[string]json.RawMessage
+		if json.Unmarshal(body, &fields) == nil {
+			_, req.NicknameSent = fields["nickname"]
 		}
 
 		// Check if this is an edit request (has ID)

@@ -228,8 +228,12 @@ func editPaymentMethod(req PaymentMethodRequest) (*PaymentMethod, error) {
 	}
 
 	// Update editable fields
-	if req.Nickname != nil {
-		targetMethod.Nickname = req.Nickname
+	if req.NicknameSent {
+		if req.Nickname != nil && *req.Nickname == "" {
+			targetMethod.Nickname = nil
+		} else {
+			targetMethod.Nickname = req.Nickname
+		}
 	}
 
 	// Handle default payment method change

@@ -101,7 +101,7 @@ class JsonStorage
         foreach ($methods as $index => $method) {
             if ($method['id'] === $id) {
                 // Update only allowed fields
-                if (isset($updateData['nickname'])) {
+                if (array_key_exists('nickname', $updateData)) {
                     $methods[$index]['nickname'] = $updateData['nickname'];
                 }
                 
