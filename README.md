@@ -103,7 +103,7 @@ Each implementation provides identical functionality with language-specific best
    cd php && ./run.sh
 
    # Java
-   mvn clean compile cargo:run
+   mvn clean package cargo:run
 
    # Go
    go mod download && go run .
