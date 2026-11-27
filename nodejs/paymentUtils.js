@@ -245,8 +245,12 @@ export const createMultiUseTokenWithCustomer = async (paymentToken, customerData
             .execute();
 
         if (response.responseCode === '00') {
+            if (!response.token) {
+                // A single-use token expires, so storing it as the saved card would break every later charge
+                throw new Error('Multi-use token creation failed: the gateway approved but returned no token');
+            }
             const brand = determineCardBrandFromType(cardDetails.cardType || '');
-            const finalToken = response.token || paymentToken;
+            const finalToken = response.token;
 
             console.log('✅ MULTI-USE TOKEN CREATION SUCCESS:');
             console.log(`   ⏰ Timestamp: ${new Date().toISOString()}`);

@@ -135,11 +135,8 @@ public class PaymentMethodsServlet extends HttpServlet {
                             System.out.println("🟢 LIVE MODE - Created multi-use token for " + cardDetails.get("brand") + " ending in " + cardDetails.get("last4"));
                         } catch (Exception e) {
                             System.err.println("❌ LIVE MODE - Multi-use token creation failed: " + e.getMessage());
-                            // Fall back to mock mode
-                            mockMode = true;
-                            cardDetails = MockResponses.getCardDetailsFromToken(paymentToken);
-                            finalToken = paymentToken;
-                            System.out.println("🟡 Fallback to mock mode: Using payment token as final token");
+                            sendErrorResponse(response, 502, "Failed to save card: multi-use token creation failed", "TOKENIZATION_ERROR");
+                            return;
                         }
                     } else {
                         System.err.println("❌ LIVE MODE - No SECRET_API_KEY configured");

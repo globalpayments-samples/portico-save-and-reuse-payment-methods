@@ -124,19 +124,18 @@ try {
             $multiUseTokenData = null;
             $finalToken = $paymentToken;
 
-            if (!$mockMode && !empty($_ENV['SECRET_API_KEY'])) {
+            if (!$mockMode) {
                 try {
                     $multiUseTokenData = PaymentUtils::createMultiUseTokenWithCustomer($paymentToken, $customerData, $cardDetails);
                     $finalToken = $multiUseTokenData['multiUseToken'];
                 } catch (\Exception $e) {
                     error_log('Multi-use token creation error: ' . $e->getMessage());
-                    // Fall back to mock mode if token creation fails
-                    $mockMode = true;
+                    PaymentUtils::sendErrorResponse(502, 'Failed to save card: multi-use token creation failed', 'TOKENIZATION_ERROR');
                 }
             }
 
-            // Use mock data in mock mode or if token creation failed
-            if ($mockMode || !$multiUseTokenData) {
+            // Use mock data in mock mode
+            if ($mockMode) {
                 $brand = PaymentUtils::determineCardBrandFromType($cardDetails['cardType'] ?? '');
                 $multiUseTokenData = [
                     'multiUseToken' => $paymentToken,

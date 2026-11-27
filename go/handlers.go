@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -190,6 +191,10 @@ func paymentMethodsHandler(w http.ResponseWriter, r *http.Request) {
 
 		// Create new payment method
 		method, err := createPaymentMethod(req)
+		if errors.Is(err, errTokenizationFailed) {
+			sendErrorResponse(w, http.StatusBadGateway, "Failed to save card: multi-use token creation failed", "TOKENIZATION_ERROR")
+			return
+		}
 		if err != nil {
 			sendErrorResponse(w, http.StatusBadRequest, err.Error(), "CREATION_FAILED")
 			return

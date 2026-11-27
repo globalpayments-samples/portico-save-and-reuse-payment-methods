@@ -96,10 +96,14 @@ class PaymentUtils
                 ->execute();
 
             if ($response->responseCode === '00') {
+                if (empty($response->token)) {
+                    // A single-use token expires, so storing it as the saved card would break every later charge
+                    throw new \Exception('Multi-use token creation failed: the gateway approved but returned no token');
+                }
                 $brand = self::determineCardBrandFromType($cardDetails['cardType'] ?? '');
 
                 return [
-                    'multiUseToken' => $response->token ?? $paymentToken,
+                    'multiUseToken' => $response->token,
                     'brand' => $brand,
                     'last4' => $cardDetails['cardLast4'] ?? '',
                     'expiryMonth' => $cardDetails['expiryMonth'] ?? '',
