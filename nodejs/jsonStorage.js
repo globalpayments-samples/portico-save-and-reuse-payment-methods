@@ -5,7 +5,7 @@
 
 import fs from 'fs/promises';
 import path from 'path';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'crypto';
 
 const DATA_DIR = 'data';
 const PAYMENT_METHODS_FILE = path.join(DATA_DIR, 'payment_methods.json');
@@ -37,7 +37,7 @@ export async function initializeStorage() {
  * Generate unique ID for payment methods
  */
 function generateId() {
-    return `pm_${Date.now()}_${uuidv4().replace(/-/g, '').substring(0, 16)}`;
+    return `pm_${Date.now()}_${randomUUID().replace(/-/g, '').substring(0, 16)}`;
 }
 
 /**
