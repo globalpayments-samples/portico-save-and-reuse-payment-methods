@@ -58,6 +58,8 @@ type PaymentMethodRequest struct {
 	ID        string  `json:"id,omitempty"`
 	Nickname  *string `json:"nickname,omitempty"`
 	IsDefault bool    `json:"isDefault"`
+	// Set when the request has a nickname field, even if it is null
+	NicknameSent bool `json:"-"`
 
 	// For creating new payment methods from payment token
 	PaymentToken string      `json:"payment_token,omitempty"`
