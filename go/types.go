@@ -60,18 +60,18 @@ type PaymentMethodRequest struct {
 	IsDefault bool    `json:"isDefault"`
 
 	// For creating new payment methods from payment token
-	PaymentToken string      `json:"paymentToken,omitempty"`
+	PaymentToken string      `json:"payment_token,omitempty"`
 	CardDetails  CardDetails `json:"cardDetails,omitempty"`
 
 	// Customer data
-	FirstName     string `json:"firstName,omitempty"`
-	LastName      string `json:"lastName,omitempty"`
+	FirstName     string `json:"first_name,omitempty"`
+	LastName      string `json:"last_name,omitempty"`
 	Email         string `json:"email,omitempty"`
 	Phone         string `json:"phone,omitempty"`
-	StreetAddress string `json:"streetAddress,omitempty"`
+	StreetAddress string `json:"street_address,omitempty"`
 	City          string `json:"city,omitempty"`
 	State         string `json:"state,omitempty"`
-	BillingZip    string `json:"billingZip,omitempty"`
+	BillingZip    string `json:"billing_zip,omitempty"`
 	Country       string `json:"country,omitempty"`
 
 	// Legacy fields for backward compatibility (deprecated)

@@ -184,7 +184,7 @@ func paymentMethodsHandler(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		} else {
-			sendErrorResponse(w, http.StatusBadRequest, "Missing required payment data: either paymentToken+cardDetails or cardNumber+expiryMonth+expiryYear+cvv", "VALIDATION_ERROR")
+			sendErrorResponse(w, http.StatusBadRequest, "Missing required payment data: either payment_token+cardDetails or cardNumber+expiryMonth+expiryYear+cvv", "VALIDATION_ERROR")
 			return
 		}
 
