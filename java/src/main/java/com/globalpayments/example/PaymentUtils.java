@@ -305,8 +305,12 @@ public class PaymentUtils {
                     .execute();
 
             if ("00".equals(response.getResponseCode())) {
+                if (response.getToken() == null || response.getToken().isEmpty()) {
+                    // A single-use token expires, so storing it as the saved card would break every later charge
+                    throw new Exception("Multi-use token creation failed: the gateway approved but returned no token");
+                }
                 String brand = determineCardBrandFromType(cardDetails.cardType);
-                String finalToken = response.getToken() != null ? response.getToken() : paymentToken;
+                String finalToken = response.getToken();
 
                 System.out.println("✅ MULTI-USE TOKEN CREATION SUCCESS:");
                 System.out.println("   ⏰ Timestamp: " + LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));

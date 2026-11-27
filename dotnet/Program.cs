@@ -427,7 +427,7 @@ public class Program
             MultiUseTokenResult? multiUseTokenData = null;
             var finalToken = paymentToken;
 
-            if (!mockModeEnabled && !string.IsNullOrEmpty(System.Environment.GetEnvironmentVariable("SECRET_API_KEY")))
+            if (!mockModeEnabled)
             {
                 try
                 {
@@ -437,13 +437,18 @@ public class Program
                 catch (Exception ex)
                 {
                     Console.WriteLine($"Multi-use token creation error: {ex.Message}");
-                    // Fall back to mock mode if token creation fails
-                    mockModeEnabled = true;
+                    return Results.Json(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "Failed to save card: multi-use token creation failed",
+                        ErrorCode = "TOKENIZATION_ERROR",
+                        Timestamp = DateTime.UtcNow
+                    }, statusCode: 502);
                 }
             }
 
-            // Use mock data in mock mode or if token creation failed
-            if (mockModeEnabled || multiUseTokenData == null)
+            // Use mock data in mock mode
+            if (multiUseTokenData == null)
             {
                 var brand = PaymentUtils.DetermineCardBrandFromType(cardDetails.CardType ?? "");
                 multiUseTokenData = new MultiUseTokenResult

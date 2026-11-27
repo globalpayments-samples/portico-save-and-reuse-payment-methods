@@ -99,11 +99,16 @@ public static class PaymentUtils
 
                 if (response.ResponseCode == "00")
                 {
+                    if (string.IsNullOrEmpty(response.Token))
+                    {
+                        // A single-use token expires, so storing it as the saved card would break every later charge
+                        throw new Exception("Multi-use token creation failed: the gateway approved but returned no token");
+                    }
                     var brand = DetermineCardBrandFromType(cardDetails.CardType ?? "");
 
                     return new MultiUseTokenResult
                     {
-                        MultiUseToken = response.Token ?? paymentToken,
+                        MultiUseToken = response.Token,
                         Brand = brand,
                         Last4 = cardDetails.CardLast4 ?? "",
                         ExpiryMonth = cardDetails.ExpiryMonth ?? "",

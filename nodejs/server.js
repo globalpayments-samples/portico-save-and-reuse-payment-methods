@@ -332,11 +332,12 @@ async function handleCreatePaymentMethod(req, res, data) {
                     console.log(`🟢 Live mode: Created multi-use token for ${cardDetails.brand} ending in ${cardDetails.last4}`);
                 } catch (error) {
                     console.log(`❌ Live mode multi-use token creation failed: ${error.message}`);
-                    // Fall back to mock mode
-                    isUsingMockMode = true;
-                    cardDetails = mockResponses.getCardDetailsFromToken(paymentToken);
-                    finalToken = paymentToken;
-                    console.log(`🟡 Fallback to mock mode: Using payment token as final token`);
+                    return res.status(502).json({
+                        success: false,
+                        message: 'Failed to save card: multi-use token creation failed',
+                        errorCode: 'TOKENIZATION_ERROR',
+                        timestamp: new Date().toISOString()
+                    });
                 }
             }
         } else {
