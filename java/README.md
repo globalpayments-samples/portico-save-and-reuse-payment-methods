@@ -384,8 +384,7 @@ For production deployment, enhance with:
 
 ### Development
 ```bash
-mvn clean compile
-mvn cargo:run
+mvn clean package cargo:run
 ```
 
 ### Production Build
