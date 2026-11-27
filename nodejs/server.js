@@ -505,13 +505,18 @@ async function processPayment(paymentMethodId, amount, type) {
                 .withAllowDuplicates(true)
                 .execute();
 
+            // A declined card comes back as a normal response, not an error
+            if (response.responseCode !== '00') {
+                throw new Error(`Payment declined: ${response.responseMessage || response.responseCode}`);
+            }
+
             console.log(`🟢 Live payment processed: ${response.transactionId}`);
 
             return {
                 transactionId: response.transactionId || '',
                 amount: amount,
                 currency: 'USD',
-                status: response.responseCode === '00' ? 'approved' : 'declined',
+                status: 'approved',
                 responseCode: response.responseCode || '',
                 responseMessage: response.responseMessage || '',
                 timestamp: new Date().toISOString(),

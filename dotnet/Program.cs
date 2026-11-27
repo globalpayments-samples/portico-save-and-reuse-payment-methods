@@ -568,6 +568,12 @@ public class Program
                     .WithAllowDuplicates(true)
                     .Execute();
 
+                // A declined card comes back as a normal response, not an exception
+                if (response.ResponseCode != "00")
+                {
+                    throw new Exception($"Payment declined: {response.ResponseMessage ?? response.ResponseCode}");
+                }
+
                 Console.WriteLine($"🟢 Live payment processed: {response.TransactionId}");
 
                 return new ChargeResponseData
@@ -575,7 +581,7 @@ public class Program
                     TransactionId = response.TransactionId ?? "",
                     Amount = amount,
                     Currency = "USD",
-                    Status = response.ResponseCode == "00" ? "approved" : "declined",
+                    Status = "approved",
                     ResponseCode = response.ResponseCode ?? "",
                     ResponseMessage = response.ResponseMessage ?? "",
                     Timestamp = DateTime.UtcNow,
