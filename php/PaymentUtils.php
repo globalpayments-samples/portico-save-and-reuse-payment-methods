@@ -162,6 +162,7 @@ class PaymentUtils
 
             $response = $card->charge($amount)
                 ->withCurrency($currency)
+                ->withAllowDuplicates(true)
                 ->execute();
 
             if ($response->responseCode === '00') {

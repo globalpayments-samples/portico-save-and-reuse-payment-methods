@@ -169,6 +169,7 @@ public class PaymentUtils {
 
             Transaction response = card.charge(amount)
                     .withCurrency(currency)
+                    .withAllowDuplicates(true)
                     .execute();
 
             if ("00".equals(response.getResponseCode())) {
